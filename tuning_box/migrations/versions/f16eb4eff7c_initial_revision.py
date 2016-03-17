@@ -35,20 +35,17 @@ def upgrade():
     table_prefix = context.config.get_main_option('table_prefix')
     op.create_table(
         table_prefix + 'component',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
         table_prefix + 'environment',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
     )
     op.create_table(
         table_prefix + 'namespace',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
         table_prefix + 'environment_components',
@@ -61,7 +58,7 @@ def upgrade():
     )
     op.create_table(
         table_prefix + 'environment_hierarchy_level',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('environment_id', sa.Integer(), nullable=True),
         sa.Column('name', sa.String(length=128), nullable=True),
         sa.Column('parent_id', sa.Integer(), nullable=True),
@@ -69,13 +66,12 @@ def upgrade():
             ['environment_id'], [table_prefix + 'environment.id']),
         sa.ForeignKeyConstraint(
             ['parent_id'], [table_prefix + 'environment_hierarchy_level.id']),
-        sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('environment_id', 'name'),
         sa.UniqueConstraint('environment_id', 'parent_id'),
     )
     op.create_table(
         table_prefix + 'schema',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
         sa.Column('component_id', sa.Integer(), nullable=True),
         sa.Column('namespace_id', sa.Integer(), nullable=True),
@@ -84,21 +80,19 @@ def upgrade():
             ['component_id'], [table_prefix + 'component.id']),
         sa.ForeignKeyConstraint(
             ['namespace_id'], [table_prefix + 'namespace.id']),
-        sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
         table_prefix + 'template',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
         sa.Column('component_id', sa.Integer(), nullable=True),
         sa.Column('content', tuning_box.db.Json(), nullable=True),
         sa.ForeignKeyConstraint(
             ['component_id'], [table_prefix + 'component.id']),
-        sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
         table_prefix + 'environment_hierarchy_level_value',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('level_id', sa.Integer(), nullable=True),
         sa.Column('parent_id', sa.Integer(), nullable=True),
         sa.Column('value', sa.String(length=128), nullable=True),
@@ -107,11 +101,10 @@ def upgrade():
         sa.ForeignKeyConstraint(
             ['parent_id'],
             [table_prefix + 'environment_hierarchy_level_value.id']),
-        sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
         table_prefix + 'environment_schema_values',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('environment_id', sa.Integer(), nullable=True),
         sa.Column('schema_id', sa.Integer(), nullable=True),
         sa.Column('level_value_id', sa.Integer(), nullable=True),
@@ -122,7 +115,6 @@ def upgrade():
             ['level_value_id'],
             [table_prefix + 'environment_hierarchy_level_value.id']),
         sa.ForeignKeyConstraint(['schema_id'], [table_prefix + 'schema.id']),
-        sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('environment_id', 'schema_id', 'level_value_id'),
     )
 

@@ -47,75 +47,112 @@ def upgrade():
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
     )
+    table_name = table_prefix + 'environment_components'
     op.create_table(
-        table_prefix + 'environment_components',
+        table_name,
         sa.Column('environment_id', sa.Integer(), nullable=True),
         sa.Column('component_id', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(
-            ['component_id'], [table_prefix + 'component.id']),
+            ['component_id'], [table_prefix + 'component.id'],
+            name=table_name + '_component_id_fkey',
+        ),
         sa.ForeignKeyConstraint(
-            ['environment_id'], [table_prefix + 'environment.id']),
+            ['environment_id'], [table_prefix + 'environment.id'],
+            name=table_name + '_environment_id_fkey',
+        ),
     )
+    table_name = table_prefix + 'environment_hierarchy_level'
     op.create_table(
-        table_prefix + 'environment_hierarchy_level',
+        table_name,
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('environment_id', sa.Integer(), nullable=True),
         sa.Column('name', sa.String(length=128), nullable=True),
         sa.Column('parent_id', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(
-            ['environment_id'], [table_prefix + 'environment.id']),
+            ['environment_id'], [table_prefix + 'environment.id'],
+            name=table_name + '_environment_id_fkey',
+        ),
         sa.ForeignKeyConstraint(
-            ['parent_id'], [table_prefix + 'environment_hierarchy_level.id']),
-        sa.UniqueConstraint('environment_id', 'name'),
-        sa.UniqueConstraint('environment_id', 'parent_id'),
+            ['parent_id'], [table_prefix + 'environment_hierarchy_level.id'],
+            name=table_name + '_parent_id_fkey',
+        ),
+        sa.UniqueConstraint(
+            'environment_id', 'name',
+            name=table_name + '_environment_id_name_key',
+        ),
+        sa.UniqueConstraint(
+            'environment_id', 'parent_id',
+            name=table_name[:-4] + '_environment_id_parent_id_key',
+        ),
     )
+    table_name = table_prefix + 'schema'
     op.create_table(
-        table_prefix + 'schema',
+        table_name,
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
         sa.Column('component_id', sa.Integer(), nullable=True),
         sa.Column('namespace_id', sa.Integer(), nullable=True),
         sa.Column('content', tuning_box.db.Json(), nullable=True),
         sa.ForeignKeyConstraint(
-            ['component_id'], [table_prefix + 'component.id']),
+            ['component_id'], [table_prefix + 'component.id'],
+            name=table_name + '_component_id_fkey'),
         sa.ForeignKeyConstraint(
-            ['namespace_id'], [table_prefix + 'namespace.id']),
+            ['namespace_id'], [table_prefix + 'namespace.id'],
+            name=table_name + '_namespace_id_fkey'),
     )
+    table_name = table_prefix + 'template'
     op.create_table(
-        table_prefix + 'template',
+        table_name,
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('name', sa.String(length=128), nullable=True),
         sa.Column('component_id', sa.Integer(), nullable=True),
         sa.Column('content', tuning_box.db.Json(), nullable=True),
         sa.ForeignKeyConstraint(
-            ['component_id'], [table_prefix + 'component.id']),
+            ['component_id'], [table_prefix + 'component.id'],
+            name=table_name + '_component_id_fkey',
+        ),
     )
+    table_name = table_prefix + 'environment_hierarchy_level_value'
     op.create_table(
-        table_prefix + 'environment_hierarchy_level_value',
+        table_name,
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('level_id', sa.Integer(), nullable=True),
         sa.Column('parent_id', sa.Integer(), nullable=True),
         sa.Column('value', sa.String(length=128), nullable=True),
         sa.ForeignKeyConstraint(
-            ['level_id'], [table_prefix + 'environment_hierarchy_level.id']),
+            ['level_id'], [table_prefix + 'environment_hierarchy_level.id'],
+            name=table_name + '_level_id_fkey',
+        ),
         sa.ForeignKeyConstraint(
-            ['parent_id'],
-            [table_prefix + 'environment_hierarchy_level_value.id']),
+            ['parent_id'], [table_name + '.id'],
+            name=table_name + '_parent_id_fkey',
+        ),
     )
+    table_name = table_prefix + 'environment_schema_values'
     op.create_table(
-        table_prefix + 'environment_schema_values',
+        table_name,
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),
         sa.Column('environment_id', sa.Integer(), nullable=True),
         sa.Column('schema_id', sa.Integer(), nullable=True),
         sa.Column('level_value_id', sa.Integer(), nullable=True),
         sa.Column('values', tuning_box.db.Json(), nullable=True),
         sa.ForeignKeyConstraint(
-            ['environment_id'], [table_prefix + 'environment.id']),
+            ['environment_id'], [table_prefix + 'environment.id'],
+            name=table_name + '_environment_id_fkey',
+        ),
         sa.ForeignKeyConstraint(
             ['level_value_id'],
-            [table_prefix + 'environment_hierarchy_level_value.id']),
-        sa.ForeignKeyConstraint(['schema_id'], [table_prefix + 'schema.id']),
-        sa.UniqueConstraint('environment_id', 'schema_id', 'level_value_id'),
+            [table_prefix + 'environment_hierarchy_level_value.id'],
+            name=table_name + '_level_value_id_fkey',
+        ),
+        sa.ForeignKeyConstraint(
+            ['schema_id'], [table_prefix + 'schema.id'],
+            name=table_name + '_schema_id_fkey',
+        ),
+        sa.UniqueConstraint(
+            'environment_id', 'schema_id', 'level_value_id',
+            name=table_name[:-6] + 'environment_id_schema_id_leve_key',
+        ),
     )
 
 

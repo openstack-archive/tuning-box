@@ -91,10 +91,6 @@ class Json(types.TypeDecorator):
         return json.loads(value)
 
 
-class Namespace(ModelMixin, db.Model):
-    name = db.Column(db.String(128))
-    __repr_attrs__ = ('id', 'name')
-
 # Component registry
 
 
@@ -104,21 +100,10 @@ class Component(ModelMixin, db.Model):
     __repr_attrs__ = ('id', 'name')
 
 
-class Schema(ModelMixin, db.Model):
+class ResourceDefinition(ModelMixin, db.Model):
     name = db.Column(db.String(128))
     component_id = fk(Component)
-    component = db.relationship(Component, backref='schemas')
-    namespace_id = fk(Namespace)
-    namespace = db.relationship(Namespace)
-    content = db.Column(Json)
-
-    __repr_attrs__ = ('id', 'name', 'component', 'namespace', 'content')
-
-
-class Template(ModelMixin, db.Model):
-    name = db.Column(db.String(128))
-    component_id = fk(Component)
-    component = db.relationship(Component, backref='templates')
+    component = db.relationship(Component, backref='resource_definitions')
     content = db.Column(Json)
 
     __repr_attrs__ = ('id', 'name', 'component', 'content')
@@ -128,13 +113,17 @@ class Template(ModelMixin, db.Model):
 
 class Environment(ModelMixin, db.Model):
     @sa_decl.declared_attr
-    def components(cls):
-        _environment_components = db.Table(
+    def environment_components_table(cls):
+        return db.Table(
             _tablename('environment_components'),
             db.Column('environment_id', pk_type, db.ForeignKey(cls.id)),
             db.Column('component_id', pk_type, db.ForeignKey(Component.id)),
         )
-        return db.relationship(Component, secondary=_environment_components)
+
+    @sa_decl.declared_attr
+    def components(cls):
+        return db.relationship(
+            Component, secondary=cls.environment_components_table)
 
     __repr_attrs__ = ('id',)
 
@@ -188,19 +177,21 @@ class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
     __repr_attrs__ = ('id', 'level', 'parent', 'value')
 
 
-class EnvironmentSchemaValues(ModelMixin, db.Model):
+class ResourceValues(ModelMixin, db.Model):
     environment_id = fk(Environment)
     environment = db.relationship(Environment)
-    schema_id = fk(Schema)
-    schema = db.relationship(Schema)
+    resource_definition_id = fk(ResourceDefinition)
+    resource_definition = db.relationship(ResourceDefinition)
     level_value_id = fk(EnvironmentHierarchyLevelValue)
     level_value = db.relationship('EnvironmentHierarchyLevelValue')
     values = db.Column(Json)
 
     __table_args__ = (
-        db.UniqueConstraint(environment_id, schema_id, level_value_id),
+        db.UniqueConstraint(environment_id, resource_definition_id,
+                            level_value_id),
     )
-    __repr_attrs__ = ('id', 'environment', 'schema', 'level_value', 'values')
+    __repr_attrs__ = ('id', 'environment', 'resource_definition',
+                      'level_value', 'values')
 
 
 def get_or_create(cls, **attrs):

@@ -52,21 +52,13 @@ class TestApp(base.TestCase):
 
     def _fixture(self):
         with self.app.app_context():
-            namespace = db.Namespace(id=3, name='nsname')
-            db.db.session.add(namespace)
             component = db.Component(
                 id=7,
                 name='component1',
-                schemas=[db.Schema(
+                resource_definitions=[db.ResourceDefinition(
                     id=5,
-                    name='schema1',
-                    namespace=namespace,
-                    content={'key': 'description'},
-                )],
-                templates=[db.Template(
-                    id=5,
-                    name='template1',
-                    content={'my_key': 'nsname.key'},
+                    name='resdef1',
+                    content={'key': 'nsname.key'},
                 )],
             )
             db.db.session.add(component)
@@ -80,75 +72,16 @@ class TestApp(base.TestCase):
             db.db.session.add(environment)
             db.db.session.commit()
 
-    def test_get_namespaces_empty(self):
-        res = self.client.get('/namespaces')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [])
-
-    def test_get_namespaces(self):
-        self._fixture()
-        res = self.client.get('/namespaces')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [{'id': 3, 'name': 'nsname'}])
-
-    def test_get_one_namespace(self):
-        self._fixture()
-        res = self.client.get('/namespaces/3')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'id': 3, 'name': 'nsname'})
-
-    def test_get_one_namespace_404(self):
-        res = self.client.get('/namespaces/3')
-        self.assertEqual(res.status_code, 404)
-
-    def test_post_namespace(self):
-        res = self.client.post('/namespaces', data={'name': 'nsname'})
-        self.assertEqual(res.status_code, 201)
-        self.assertEqual(res.json, {'id': 1, 'name': 'nsname'})
-
-    def test_put_namepsace(self):
-        self._fixture()
-        res = self.client.put('/namespaces/3', data={'name': 'nsname1'})
-        self.assertEqual(res.status_code, 201)
-        self.assertEqual(res.json, {'id': 3, 'name': 'nsname1'})
-        with self.app.app_context():
-            namespace = db.Namespace.query.get(3)
-            self.assertEqual(namespace.name, 'nsname1')
-
-    def test_put_namepsace_404(self):
-        res = self.client.put('/namespaces/3', data={'name': 'nsname1'})
-        self.assertEqual(res.status_code, 404)
-
-    def test_delete_namepsace(self):
-        self._fixture()
-        res = self.client.delete('/namespaces/3')
-        self.assertEqual(res.status_code, 204)
-        self.assertEqual(res.data, b'')
-        with self.app.app_context():
-            namespace = db.Namespace.query.get(3)
-            self.assertIsNone(namespace)
-
-    def test_delete_namepsace_404(self):
-        res = self.client.delete('/namespaces/3')
-        self.assertEqual(res.status_code, 404)
-
     @property
     def _component_json(self):
         return {
             'id': 7,
             'name': 'component1',
-            'schemas': [{
+            'resource_definitions': [{
                 'id': 5,
-                'name': 'schema1',
+                'name': 'resdef1',
                 'component_id': 7,
-                'namespace_id': 3,
-                'content': {'key': 'description'},
-            }],
-            'templates': [{
-                'id': 5,
-                'name': 'template1',
-                'component_id': 7,
-                'content': {'my_key': 'nsname.key'},
+                'content': {'key': 'nsname.key'},
             }],
         }
 
@@ -177,14 +110,13 @@ class TestApp(base.TestCase):
         self._fixture()  # Just for namespace
         json = self._component_json
         del json['id']
-        del json['schemas'][0]['id'], json['schemas'][0]['component_id']
-        del json['templates'][0]['id'], json['templates'][0]['component_id']
+        del json['resource_definitions'][0]['id']
+        del json['resource_definitions'][0]['component_id']
         res = self.client.post('/components', data=json)
         self.assertEqual(res.status_code, 201)
         json['id'] = 8
-        json['schemas'][0]['component_id'] = json['id']
-        json['templates'][0]['component_id'] = json['id']
-        json['schemas'][0]['id'] = json['templates'][0]['id'] = 6
+        json['resource_definitions'][0]['component_id'] = json['id']
+        json['resource_definitions'][0]['id'] = 6
         self.assertEqual(res.json, json)
 
     def test_delete_component(self):
@@ -295,13 +227,13 @@ class TestApp(base.TestCase):
 
     def test_put_esv_root(self):
         self._fixture()
-        res = self.client.put('/environments/9/schema/5/values',
+        res = self.client.put('/environments/9/resources/5/values',
                               data={'k': 'v'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         with self.app.app_context():
-            esv = db.EnvironmentSchemaValues.query.filter_by(
-                environment_id=9, schema_id=5).one_or_none()
+            esv = db.ResourceValues.query.filter_by(
+                environment_id=9, resource_definition_id=5).one_or_none()
             self.assertIsNotNone(esv)
             self.assertEqual(esv.values, {'k': 'v'})
             self.assertIsNone(esv.level_value.level)
@@ -311,14 +243,14 @@ class TestApp(base.TestCase):
     def test_put_esv_deep(self):
         self._fixture()
         res = self.client.put(
-            '/environments/9/schema/5/lvl1/val1/lvl2/val2/values',
+            '/environments/9/lvl1/val1/lvl2/val2/resources/5/values',
             data={'k': 'v'},
         )
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         with self.app.app_context():
-            esv = db.EnvironmentSchemaValues.query.filter_by(
-                environment_id=9, schema_id=5).one_or_none()
+            esv = db.ResourceValues.query.filter_by(
+                environment_id=9, resource_definition_id=5).one_or_none()
             self.assertIsNotNone(esv)
             self.assertEqual(esv.values, {'k': 'v'})
             level_value = esv.level_value
@@ -334,7 +266,7 @@ class TestApp(base.TestCase):
 
     def test_put_esv_bad_level(self):
         self._fixture()
-        res = self.client.put('/environments/9/schema/5/lvlx/1/values',
+        res = self.client.put('/environments/9/lvlx/1/resources/5/values',
                               data={'k': 'v'})
         self.assertEqual(res.status_code, 400)
         self.assertEqual(
@@ -344,61 +276,27 @@ class TestApp(base.TestCase):
 
     def test_get_etv(self):
         self._fixture()
-        res = self.client.put('/environments/9/schema/5/values',
+        res = self.client.put('/environments/9/resources/5/values',
                               data={'key': 'value'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
-        res = self.client.get('/environments/9/templates/5/lvl1/1/values')
+        res = self.client.get('/environments/9/lvl1/1/resources/5/values')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'my_key': 'value'})
+        self.assertEqual(res.json, {'key': 'value'})
 
     def test_get_etv_level_override(self):
         self._fixture()
-        res = self.client.put('/environments/9/schema/5/values',
+        res = self.client.put('/environments/9/resources/5/values',
                               data={'key': 'value'})
-        res = self.client.put('/environments/9/schema/5/lvl1/1/values',
+        res = self.client.put('/environments/9/lvl1/1/resources/5/values',
                               data={'key': 'value1'})
-        res = self.client.put('/environments/9/schema/5/lvl1/2/values',
+        res = self.client.put('/environments/9/lvl1/2/resources/5/values',
                               data={'key': 'value2'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
-        res = self.client.get('/environments/9/templates/5/lvl1/1/values')
+        res = self.client.get('/environments/9/lvl1/1/resources/5/values')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'my_key': 'value1'})
-
-    def test_get_etv_two_namespaces(self):
-        self._fixture()
-        with self.app.app_context():
-            schema = db.Schema(
-                namespace=db.Namespace(name='other_ns'),
-                content={'key1': 'description'},
-            )
-            template = db.Template(
-                content={'mkey1': 'nsname.key', 'mkey2': 'other_ns.key1'},
-            )
-            component = db.Component(
-                name='testcomp',
-                schemas=[schema],
-                templates=[template],
-            )
-            db.db.session.add(component)
-            db.db.session.commit()
-            db.db.session.refresh(schema)
-            db.db.session.refresh(template)
-
-        res = self.client.put('/environments/9/schema/5/values',
-                              data={'key': 'value'})
-        res = self.client.put(
-            '/environments/9/schema/{}/lvl1/1/values'.format(schema.id),
-            data={'key1': 'value1'},
-        )
-        self.assertEqual(res.status_code, 204)
-        self.assertEqual(res.data, b'')
-        res = self.client.get(
-            '/environments/9/templates/{}/lvl1/1/values'.format(template.id),
-        )
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'mkey1': 'value', 'mkey2': 'value1'})
+        self.assertEqual(res.json, {'key': 'value1'})
 
 
 class TestAppPrefixed(base.PrefixedTestCaseMixin, TestApp):

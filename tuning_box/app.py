@@ -10,8 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import collections
-import functools
 import itertools
 
 import flask
@@ -25,49 +23,7 @@ from tuning_box import db
 
 api = flask_restful.Api()
 
-namespace_fields = {
-    'id': fields.Integer,
-    'name': fields.String,
-}
-
-
-@api.resource('/namespaces', '/namespaces/<int:namespace_id>')
-class Namespace(flask_restful.Resource):
-    method_decorators = [flask_restful.marshal_with(namespace_fields)]
-
-    def get(self, namespace_id=None):
-        if namespace_id is None:
-            return db.Namespace.query.all()
-        else:
-            return db.Namespace.query.get_or_404(namespace_id)
-
-    def post(self):
-        namespace = db.Namespace(name=flask.request.json['name'])
-        db.db.session.add(namespace)
-        db.db.session.commit()
-        return namespace, 201
-
-    def put(self, namespace_id):
-        namespace = db.Namespace.query.get_or_404(namespace_id)
-        namespace.name = flask.request.json['name']
-        db.db.session.commit()
-        return namespace, 201
-
-    def delete(self, namespace_id):
-        namespace = db.Namespace.query.get_or_404(namespace_id)
-        db.db.session.delete(namespace)
-        db.db.session.commit()
-        return None, 204
-
-schema_fields = {
-    'id': fields.Integer,
-    'name': fields.String,
-    'component_id': fields.Integer,
-    'namespace_id': fields.Integer,
-    'content': fields.Raw,
-}
-
-template_fields = {
+resource_definition_fields = {
     'id': fields.Integer,
     'name': fields.String,
     'component_id': fields.Integer,
@@ -77,8 +33,8 @@ template_fields = {
 component_fields = {
     'id': fields.Integer,
     'name': fields.String,
-    'schemas': fields.List(fields.Nested(schema_fields)),
-    'templates': fields.List(fields.Nested(template_fields)),
+    'resource_definitions': fields.List(
+        fields.Nested(resource_definition_fields)),
 }
 
 
@@ -94,17 +50,11 @@ class Component(flask_restful.Resource):
 
     def post(self):
         component = db.Component(name=flask.request.json['name'])
-        component.schemas = []
-        for schema_data in flask.request.json.get('schemas'):
-            schema = db.Schema(name=schema_data['name'],
-                               namespace_id=schema_data['namespace_id'],
-                               content=schema_data['content'])
-            component.schemas.append(schema)
-        component.templates = []
-        for template_data in flask.request.json.get('templates'):
-            template = db.Template(name=template_data['name'],
-                                   content=template_data['content'])
-            component.templates.append(template)
+        component.resource_definitions = []
+        for resdef_data in flask.request.json.get('resource_definitions'):
+            resdef = db.ResourceDefinition(name=resdef_data['name'],
+                                           content=resdef_data['content'])
+            component.resource_definitions.append(resdef)
         db.db.session.add(component)
         db.db.session.commit()
         return component, 201
@@ -212,61 +162,38 @@ def get_environment_level_value(environment, levels):
 
 @api.resource(
     '/environments/<int:environment_id>' +
-    '/schema/<int:schema_id>/<levels:levels>values')
-class EnvironmentSchemaValues(flask_restful.Resource):
-    def put(self, environment_id, schema_id, levels):
+    '/<levels:levels>resources/<int:resource_id>/values')
+class ResourceValues(flask_restful.Resource):
+    def put(self, environment_id, levels, resource_id):
         environment = db.Environment.query.get_or_404(environment_id)
-        schema = db.Schema.query.get_or_404(schema_id)
+        # TODO(yorik-sar): filter by environment
+        resdef = db.ResourceDefinition.query.get_or_404(resource_id)
         level_value = get_environment_level_value(environment, levels)
         esv = db.get_or_create(
-            db.EnvironmentSchemaValues,
+            db.ResourceValues,
             environment=environment,
-            schema=schema,
+            resource_definition=resdef,
             level_value=level_value,
         )
         esv.values = flask.request.json
         db.db.session.commit()
         return None, 204
 
-
-@api.resource(
-    '/environments/<int:environment_id>' +
-    '/templates/<int:template_id>/<levels:levels>values')
-class EnvironmentTemplateValues(flask_restful.Resource):
-    def get(self, environment_id, template_id, levels):
+    def get(self, environment_id, resource_id, levels):
         environment = db.Environment.query.get_or_404(environment_id)
-        template = db.Template.query.get_or_404(template_id)
+        # TODO(yorik-sar): filter by environment
+        resdef = db.ResourceDefinition.query.get_or_404(resource_id)
         level_values = list(iter_environment_level_values(environment, levels))
-        query = (
-            db.db.session.query(db.EnvironmentSchemaValues, db.Namespace)
-            .join(db.Schema)
-            .join(db.Namespace)
-            .filter(db.EnvironmentSchemaValues.level_value_id.in_(
-                    [lv.id for lv in level_values]))
-        )
-        namespaces_schemas = query.all()
-        namespaces_levels = collections.defaultdict(
-            functools.partial(collections.defaultdict, dict))
-        # Merge data on every level
-        for esv, namespace in namespaces_schemas:
-            nl = namespaces_levels[namespace.name][esv.level_value]
-            nl.update(esv.values)
-        # Merge data across levels
-        namespaces_data = {}
-        for ns_name, ns_levels in namespaces_levels.items():
-            ns_data = {}
-            for level_value in level_values:
-                try:
-                    values = ns_levels[level_value]
-                except KeyError:
-                    pass
-                else:
-                    ns_data.update(values)
-            namespaces_data[ns_name] = ns_data
+        resource_values = db.ResourceValues.query.filter_by(
+            resource_definition=resdef,
+            environment=environment,
+        ).all()
         result = {}
-        for key, value_tmpl in template.content.items():
-            ns_name, ns_key = value_tmpl.split('.')
-            result[key] = namespaces_data[ns_name][ns_key]
+        for level_value in level_values:
+            for resource_value in resource_values:
+                if resource_value.level_value == level_value:
+                    result.update(resource_value.values)
+                    break
         return result
 
 

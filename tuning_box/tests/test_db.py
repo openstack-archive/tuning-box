@@ -115,7 +115,11 @@ class TestMigrationsSync(test_migrations.ModelsMigrationsSync,
                          test_base.DbTestCase):
     def setUp(self):
         super(TestMigrationsSync, self).setUp()
-        self.addCleanup(os.remove, _sqlite_db_file_name)
+
+        @self.addCleanup
+        def cleanup():
+            if os.path.exists(_sqlite_db_file_name):
+                os.remove(_sqlite_db_file_name)
 
     def get_metadata(self):
         return db.db.metadata

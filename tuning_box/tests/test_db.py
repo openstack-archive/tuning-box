@@ -21,6 +21,7 @@ from alembic import config as alembic_config
 import flask
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
+import testscenarios
 
 from tuning_box import db
 from tuning_box.tests import base
@@ -105,9 +106,16 @@ class TestEnvironmentHierarchyLevelPrefixed(base.PrefixedTestCaseMixin,
     pass
 
 
-class TestMigrationsSync(test_migrations.ModelsMigrationsSync,
+class TestMigrationsSync(testscenarios.WithScenarios,
+                         test_migrations.ModelsMigrationsSync,
                          base.TestCase,
                          test_base.DbTestCase):
+    scenarios = [
+        ('sqlite', {'FIXTURE': test_base.DbFixture}),
+        ('mysql', {'FIXTURE': test_base.MySQLOpportunisticFixture}),
+        ('postgres', {'FIXTURE': test_base.PostgreSQLOpportunisticFixture}),
+    ]
+
     def get_metadata(self):
         return db.db.metadata
 

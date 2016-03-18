@@ -36,7 +36,7 @@ def upgrade():
     op.drop_table(table_prefix + 'template')
     table_name = table_prefix + 'environment_schema_values'
     with op.batch_alter_table(table_name) as batch:
-        batch.drop_constraint(table_name + '_schema_id_fkey')
+        batch.drop_constraint(table_name + '_schema_id_fkey', 'foreignkey')
         batch.alter_column(
             'schema_id',
             new_column_name='resource_definition_id',
@@ -62,7 +62,8 @@ def downgrade():
     table_prefix = context.config.get_main_option('table_prefix')
     table_name = table_prefix + 'resource_values'
     with op.batch_alter_table(table_name) as batch:
-        batch.drop_constraint(table_name + '_resource_definition_id_fkey')
+        batch.drop_constraint(table_name + '_resource_definition_id_fkey',
+                              'foreignkey')
     op.create_table(
         table_prefix + 'namespace',
         sa.Column('id', sa.Integer(), nullable=False, primary_key=True),

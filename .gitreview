@@ -1,4 +1,4 @@
 [gerrit]
 host=review.openstack.org
 port=29418
-project=openstack/tuning_box.git
+project=openstack/tuning-box.git

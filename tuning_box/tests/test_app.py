@@ -162,9 +162,30 @@ class TestApp(base.TestCase):
         json['id'] = 10
         self.assertEqual(res.json, json)
 
+    def test_post_environment_by_component_name(self):
+        self._fixture()
+        json = {
+            'components': ['component1'],
+            'hierarchy_levels': ['lvla', 'lvlb'],
+        }
+        res = self.client.post('/environments', data=json)
+        self.assertEqual(res.status_code, 201)
+        json['id'] = 10
+        json['components'] = [7]
+        self.assertEqual(res.json, json)
+
     def test_post_environment_404(self):
         self._fixture()
         json = {'components': [8], 'hierarchy_levels': ['lvla', 'lvlb']}
+        res = self.client.post('/environments', data=json)
+        self.assertEqual(res.status_code, 404)
+
+    def test_post_environment_by_component_name_404(self):
+        self._fixture()
+        json = {
+            'components': ['component2'],
+            'hierarchy_levels': ['lvla', 'lvlb'],
+        }
         res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 404)
 

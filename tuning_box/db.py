@@ -106,7 +106,7 @@ class Json(types.TypeDecorator):
 
 
 class Component(ModelMixin, db.Model):
-    name = db.Column(db.String(128))
+    name = db.Column(db.String(128), unique=True)
 
     __repr_attrs__ = ('id', 'name')
 

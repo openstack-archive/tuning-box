@@ -86,7 +86,8 @@ class EnvironmentsCollection(flask_restful.Resource):
     def post(self):
         component_ids = flask.request.json['components']
         # TODO(yorik-sar): verify that resource names do not clash
-        components = [db.Component.query.get_or_404(i) for i in component_ids]
+        components = [db.Component.query.get_by_id_or_name(i)
+                      for i in component_ids]
 
         hierarchy_levels = []
         level = None

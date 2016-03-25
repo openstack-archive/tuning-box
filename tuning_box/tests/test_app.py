@@ -224,22 +224,22 @@ class TestApp(base.TestCase):
                 "Unexpected level name 'lvlx'. Expected 'lvl1'.",
             )
 
-    def test_put_esv_root(self):
+    def test_put_resource_values_root(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
                               data={'k': 'v'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         with self.app.app_context():
-            esv = db.ResourceValues.query.filter_by(
+            resource_values = db.ResourceValues.query.filter_by(
                 environment_id=9, resource_definition_id=5).one_or_none()
-            self.assertIsNotNone(esv)
-            self.assertEqual(esv.values, {'k': 'v'})
-            self.assertIsNone(esv.level_value.level)
-            self.assertIsNone(esv.level_value.parent)
-            self.assertIsNone(esv.level_value.value)
+            self.assertIsNotNone(resource_values)
+            self.assertEqual(resource_values.values, {'k': 'v'})
+            self.assertIsNone(resource_values.level_value.level)
+            self.assertIsNone(resource_values.level_value.parent)
+            self.assertIsNone(resource_values.level_value.value)
 
-    def test_put_esv_deep(self):
+    def test_put_resource_values_deep(self):
         self._fixture()
         res = self.client.put(
             '/environments/9/lvl1/val1/lvl2/val2/resources/5/values',
@@ -248,11 +248,11 @@ class TestApp(base.TestCase):
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         with self.app.app_context():
-            esv = db.ResourceValues.query.filter_by(
+            resource_values = db.ResourceValues.query.filter_by(
                 environment_id=9, resource_definition_id=5).one_or_none()
-            self.assertIsNotNone(esv)
-            self.assertEqual(esv.values, {'k': 'v'})
-            level_value = esv.level_value
+            self.assertIsNotNone(resource_values)
+            self.assertEqual(resource_values.values, {'k': 'v'})
+            level_value = resource_values.level_value
             self.assertEqual(level_value.level.name, 'lvl2')
             self.assertEqual(level_value.value, 'val2')
             level_value = level_value.parent
@@ -263,7 +263,7 @@ class TestApp(base.TestCase):
             self.assertIsNone(level_value.parent)
             self.assertIsNone(level_value.value)
 
-    def test_put_esv_bad_level(self):
+    def test_put_resource_values_bad_level(self):
         self._fixture()
         res = self.client.put('/environments/9/lvlx/1/resources/5/values',
                               data={'k': 'v'})
@@ -273,7 +273,7 @@ class TestApp(base.TestCase):
             {"message": "Unexpected level name 'lvlx'. Expected 'lvl1'."},
         )
 
-    def test_get_etv(self):
+    def test_get_resource_values(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
                               data={'key': 'value'})
@@ -283,7 +283,7 @@ class TestApp(base.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'key': 'value'})
 
-    def test_get_etv_level_override(self):
+    def test_get_resource_values_level_override(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
                               data={'key': 'value'})

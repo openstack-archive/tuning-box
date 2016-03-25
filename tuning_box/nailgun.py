@@ -60,6 +60,7 @@ class App2WebPy(web.application):
 
         app = self.get_app()
         environ = dict(web.ctx.environ)
+        environ["SCRIPT_NAME"] = environ["PATH_INFO"][:-len(web.ctx.path)]
         environ["PATH_INFO"] = environ["REQUEST_URI"] = web.ctx.path
         result = app(environ, start_response)
         return itertools.chain(written_data, result)

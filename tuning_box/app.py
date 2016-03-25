@@ -198,6 +198,7 @@ class ResourceValues(flask_restful.Resource):
                 for resource_value in resource_values:
                     if resource_value.level_value == level_value:
                         result.update(resource_value.values)
+                        result.update(resource_value.overrides)
                         break
             return result
         else:
@@ -209,6 +210,57 @@ class ResourceValues(flask_restful.Resource):
             if not resource_values:
                 return {}
             return resource_values.values
+
+
+@api.resource(
+    '/environments/<int:environment_id>' +
+    '/<levels:levels>resources/<id_or_name:resource_id_or_name>/overrides')
+class ResourceOverrides(flask_restful.Resource):
+    def put(self, environment_id, levels, resource_id_or_name):
+        environment = db.Environment.query.get_or_404(environment_id)
+        level_value = get_environment_level_value(environment, levels)
+        # TODO(yorik-sar): filter by environment
+        resdef = db.ResourceDefinition.query.get_by_id_or_name(
+            resource_id_or_name)
+        if resdef.id != resource_id_or_name:
+            return flask.redirect(api.url_for(
+                ResourceValues,
+                environment_id=environment_id,
+                levels=levels,
+                resource_id_or_name=resdef.id,
+            ), code=308)
+        esv = db.get_or_create(
+            db.ResourceValues,
+            environment=environment,
+            resource_definition=resdef,
+            level_value=level_value,
+        )
+        esv.overrides = flask.request.json
+        db.db.session.commit()
+        return None, 204
+
+    def get(self, environment_id, resource_id_or_name, levels):
+        environment = db.Environment.query.get_or_404(environment_id)
+        level_values = list(iter_environment_level_values(environment, levels))
+        # TODO(yorik-sar): filter by environment
+        resdef = db.ResourceDefinition.query.get_by_id_or_name(
+            resource_id_or_name)
+        if resdef.id != resource_id_or_name:
+            url = api.url_for(
+                ResourceValues,
+                environment_id=environment_id,
+                levels=levels,
+                resource_id_or_name=resdef.id,
+            )
+            return flask.redirect(url, code=308)
+        resource_values = db.ResourceValues.query.filter_by(
+            resource_definition=resdef,
+            environment=environment,
+            level_value=level_values[-1],
+        ).one_or_none()
+        if not resource_values:
+            return {}
+        return resource_values.overrides
 
 
 def build_app():

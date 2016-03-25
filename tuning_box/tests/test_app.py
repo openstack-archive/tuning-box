@@ -263,6 +263,45 @@ class TestApp(base.TestCase):
             self.assertIsNone(level_value.parent)
             self.assertIsNone(level_value.value)
 
+    def test_put_resource_values_overrides_root(self):
+        self._fixture()
+        res = self.client.put('/environments/9/resources/5/overrides',
+                              data={'k': 'v'})
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        with self.app.app_context():
+            resource_values = db.ResourceValues.query.filter_by(
+                environment_id=9, resource_definition_id=5).one_or_none()
+            self.assertIsNotNone(resource_values)
+            self.assertEqual(resource_values.overrides, {'k': 'v'})
+            self.assertIsNone(resource_values.level_value.level)
+            self.assertIsNone(resource_values.level_value.parent)
+            self.assertIsNone(resource_values.level_value.value)
+
+    def test_put_resource_values_overrides_deep(self):
+        self._fixture()
+        res = self.client.put(
+            '/environments/9/lvl1/val1/lvl2/val2/resources/5/overrides',
+            data={'k': 'v'},
+        )
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        with self.app.app_context():
+            resource_values = db.ResourceValues.query.filter_by(
+                environment_id=9, resource_definition_id=5).one_or_none()
+            self.assertIsNotNone(resource_values)
+            self.assertEqual(resource_values.overrides, {'k': 'v'})
+            level_value = resource_values.level_value
+            self.assertEqual(level_value.level.name, 'lvl2')
+            self.assertEqual(level_value.value, 'val2')
+            level_value = level_value.parent
+            self.assertEqual(level_value.level.name, 'lvl1')
+            self.assertEqual(level_value.value, 'val1')
+            level_value = level_value.parent
+            self.assertIsNone(level_value.level)
+            self.assertIsNone(level_value.parent)
+            self.assertIsNone(level_value.value)
+
     def test_put_resource_values_bad_level(self):
         self._fixture()
         res = self.client.put('/environments/9/lvlx/1/resources/5/values',
@@ -297,6 +336,20 @@ class TestApp(base.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'key': 'value'})
 
+    def test_get_resource_values_local_override(self):
+        self._fixture()
+        res = self.client.put('/environments/9/lvl1/1/resources/5/values',
+                              data={'key': 'value1'})
+        res = self.client.put('/environments/9/lvl1/1/resources/5/overrides',
+                              data={'key': 'value2'})
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        res = self.client.get(
+            '/environments/9/lvl1/1/resources/5/values?effective',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {'key': 'value2'})
+
     def test_get_resource_values_level_override(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
@@ -312,6 +365,22 @@ class TestApp(base.TestCase):
         )
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'key': 'value1', 'key1': 'value'})
+
+    def test_get_resource_values_level_and_local_override(self):
+        self._fixture()
+        res = self.client.put('/environments/9/resources/5/values',
+                              data={'key': 'value', 'key1': 'value'})
+        res = self.client.put('/environments/9/lvl1/1/resources/5/values',
+                              data={'key': 'value1'})
+        res = self.client.put('/environments/9/lvl1/1/resources/5/overrides',
+                              data={'key1': 'value2'})
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        res = self.client.get(
+            '/environments/9/lvl1/1/resources/5/values?effective',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {'key': 'value1', 'key1': 'value2'})
 
     def test_put_resource_values_redirect(self):
         self._fixture()

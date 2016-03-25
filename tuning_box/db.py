@@ -196,6 +196,7 @@ class ResourceValues(ModelMixin, db.Model):
     level_value_id = fk(EnvironmentHierarchyLevelValue)
     level_value = db.relationship('EnvironmentHierarchyLevelValue')
     values = db.Column(Json, server_default='{}')
+    overrides = db.Column(Json, server_default='{}')
 
     __table_args__ = (
         db.UniqueConstraint(environment_id, resource_definition_id,

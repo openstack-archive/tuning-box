@@ -297,7 +297,7 @@ class TestApp(base.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'key': 'value1'})
 
-    def test_put_resoruce_values_redirect(self):
+    def test_put_resource_values_redirect(self):
         self._fixture()
         res = self.client.put(
             '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/values',
@@ -310,7 +310,7 @@ class TestApp(base.TestCase):
             '/environments/9/lvl1/val1/lvl2/val2/resources/5/values',
         )
 
-    def test_get_resoruce_values_redirect(self):
+    def test_get_resource_values_redirect(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
                               data={'key': 'value'})

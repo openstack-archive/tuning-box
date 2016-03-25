@@ -1,0 +1,36 @@
+yum install git python-pip python-alembic python-flask
+git clone git://git.openstack.org/openstack/tuning-box.git
+pip install -e tuning-box
+sudo -u postgres psql -c '\dt' nailgun | grep tuning_box
+nailgun_syncdb
+sudo -u postgres psql -c '\dt' nailgun | grep tuning_box
+service nailgun restart
+token_id=$(openstack token issue -c id -f value)
+
+curl -H "X-Auth-Token: $token_id" http://10.20.0.2:8000/api/config/
+- components
+- environments
+- components -H "Content-type: application/json" -d @component.json
+- environments -H "Content-type: application/json" -d @environment.json
+- environments/1/resources/resource1/values
+- environments/1/resources/slashed/resource/values
+- environments/1/resources/1/values
+- environments/1/nodes/node-1.domain.tld/resources/1/values
+- environments/1/resources/1/values -H "Content-type: application/json" -X PUT -d '{"global_key": "global_value"}'
+- environments/1/nodes/node-1.domain.tld/resources/1/values -H "Content-type: application/json" -X PUT -d '{"node_key": "node_value"}'
+- environments/1/resources/1/values
+- environments/1/resources/1/values?effective
+- environments/1/nodes/node-1.domain.tld/resources/1/values
+- environments/1/nodes/node-1.domain.tld/resources/1/values?effective
+- environments/1/resources/1/overrides -H "Content-type: application/json" -X PUT -d '{"global_key": "global_override"}'
+- environments/1/nodes/node-1.domain.tld/resources/1/values?effective
+- environments/1/resources/1/values -H "Content-type: application/json" -X PUT -d '{"global_key": "global_value_new"}'
+- environments/1/nodes/node-1.domain.tld/resources/1/values?effective
+- environments/1/nodes/node-1.domain.tld/resources/1/overrides -H "Content-type: application/json" -X PUT -d '{"global_key": "node_override"}'
+- environments/1/nodes/node-1.domain.tld/resources/1/values?effective
+- environments/1/nodes/node-2.domain.tld/resources/1/values?effective
+- environments/1/resources/1/values
+- environments/1/resources/1/values?effective
+- environments/1/nodes/node-1.domain.tld/resources/1/values
+
+curl -H "X-Auth-Token: $token_id" http://10.20.0.2:8000/api/config/

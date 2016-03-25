@@ -279,23 +279,39 @@ class TestApp(base.TestCase):
                               data={'key': 'value'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
-        res = self.client.get('/environments/9/lvl1/1/resources/5/values')
+        res = self.client.get(
+            '/environments/9/lvl1/1/resources/5/values',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {})
+
+    def test_get_resource_values_effective(self):
+        self._fixture()
+        res = self.client.put('/environments/9/resources/5/values',
+                              data={'key': 'value'})
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        res = self.client.get(
+            '/environments/9/lvl1/1/resources/5/values?effective',
+        )
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'key': 'value'})
 
     def test_get_resource_values_level_override(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
-                              data={'key': 'value'})
+                              data={'key': 'value', 'key1': 'value'})
         res = self.client.put('/environments/9/lvl1/1/resources/5/values',
                               data={'key': 'value1'})
         res = self.client.put('/environments/9/lvl1/2/resources/5/values',
-                              data={'key': 'value2'})
+                              data={'key1': 'value2'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
-        res = self.client.get('/environments/9/lvl1/1/resources/5/values')
+        res = self.client.get(
+            '/environments/9/lvl1/1/resources/5/values?effective',
+        )
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'key': 'value1'})
+        self.assertEqual(res.json, {'key': 'value1', 'key1': 'value'})
 
     def test_put_resource_values_redirect(self):
         self._fixture()
@@ -322,6 +338,21 @@ class TestApp(base.TestCase):
             res.headers['Location'],
             'http://localhost'
             '/environments/9/lvl1/val1/lvl2/val2/resources/5/values',
+        )
+
+    def test_get_resource_values_redirect_with_query(self):
+        self._fixture()
+        res = self.client.put('/environments/9/resources/5/values',
+                              data={'key': 'value'})
+        res = self.client.get(
+            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/values'
+            '?effective',
+        )
+        self.assertEqual(res.status_code, 308)
+        self.assertEqual(
+            res.headers['Location'],
+            'http://localhost'
+            '/environments/9/lvl1/val1/lvl2/val2/resources/5/values?effective',
         )
 
 

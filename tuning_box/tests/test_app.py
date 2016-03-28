@@ -119,6 +119,22 @@ class TestApp(base.TestCase):
         json['resource_definitions'][0]['id'] = 6
         self.assertEqual(res.json, json)
 
+    def test_post_component_no_resdef_content(self):
+        self._fixture()  # Just for namespace
+        json = self._component_json
+        del json['id']
+        del json['resource_definitions'][0]['id']
+        del json['resource_definitions'][0]['component_id']
+        del json['resource_definitions'][0]['content']
+        json['name'] = 'component2'
+        res = self.client.post('/components', data=json)
+        self.assertEqual(res.status_code, 201)
+        json['id'] = 8
+        json['resource_definitions'][0]['component_id'] = json['id']
+        json['resource_definitions'][0]['id'] = 6
+        json['resource_definitions'][0]['content'] = None
+        self.assertEqual(res.json, json)
+
     def test_delete_component(self):
         self._fixture()
         res = self.client.delete('/components/7')

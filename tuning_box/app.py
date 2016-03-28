@@ -49,7 +49,7 @@ class ComponentsCollection(flask_restful.Resource):
         component.resource_definitions = []
         for resdef_data in flask.request.json.get('resource_definitions'):
             resdef = db.ResourceDefinition(name=resdef_data['name'],
-                                           content=resdef_data['content'])
+                                           content=resdef_data.get('content'))
             component.resource_definitions.append(resdef)
         db.db.session.add(component)
         db.db.session.commit()

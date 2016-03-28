@@ -179,6 +179,17 @@ class TestApp(base.TestCase):
         json['id'] = 10
         self.assertEqual(res.json, json)
 
+    def test_post_environment_preserve_id(self):
+        self._fixture()
+        json = {
+            'id': 42,
+            'components': [7],
+            'hierarchy_levels': ['lvla', 'lvlb'],
+        }
+        res = self.client.post('/environments', data=json)
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.json, json)
+
     def test_post_environment_by_component_name(self):
         self._fixture()
         json = {

@@ -97,6 +97,8 @@ class EnvironmentsCollection(flask_restful.Resource):
 
         environment = db.Environment(components=components,
                                      hierarchy_levels=hierarchy_levels)
+        if 'id' in flask.request.json:
+            environment.id = flask.request.json['id']
         db.db.session.add(environment)
         db.db.session.commit()
         return environment, 201

@@ -1,0 +1,8 @@
+Code-Review+2: Yuriy Taraday <yorik.sar@gmail.com>
+Workflow+1: Yuriy Taraday <yorik.sar@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Tue, 29 Mar 2016 12:18:25 +0000
+Reviewed-on: https://review.openstack.org/298691
+Project: openstack/tuning-box
+Branch: refs/heads/master

@@ -227,7 +227,7 @@ class ResourceOverrides(flask_restful.Resource):
             resource_id_or_name)
         if resdef.id != resource_id_or_name:
             return flask.redirect(api.url_for(
-                ResourceValues,
+                ResourceOverrides,
                 environment_id=environment_id,
                 levels=levels,
                 resource_id_or_name=resdef.id,
@@ -250,7 +250,7 @@ class ResourceOverrides(flask_restful.Resource):
             resource_id_or_name)
         if resdef.id != resource_id_or_name:
             url = api.url_for(
-                ResourceValues,
+                ResourceOverrides,
                 environment_id=environment_id,
                 levels=levels,
                 resource_id_or_name=resdef.id,

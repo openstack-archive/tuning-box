@@ -473,6 +473,33 @@ class TestApp(base.TestCase):
             '/environments/9/lvl1/val1/lvl2/val2/resources/5/values?effective',
         )
 
+    def test_put_resource_overrides_redirect(self):
+        self._fixture()
+        res = self.client.put(
+            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/overrides',
+            data={'k': 'v'},
+        )
+        self.assertEqual(res.status_code, 308)
+        self.assertEqual(
+            res.headers['Location'],
+            'http://localhost'
+            '/environments/9/lvl1/val1/lvl2/val2/resources/5/overrides',
+        )
+
+    def test_get_resource_overrides_redirect(self):
+        self._fixture()
+        res = self.client.put('/environments/9/resources/5/overrides',
+                              data={'key': 'value'})
+        res = self.client.get(
+            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/overrides',
+        )
+        self.assertEqual(res.status_code, 308)
+        self.assertEqual(
+            res.headers['Location'],
+            'http://localhost'
+            '/environments/9/lvl1/val1/lvl2/val2/resources/5/overrides',
+        )
+
 
 class TestAppPrefixed(base.PrefixedTestCaseMixin, TestApp):
     pass

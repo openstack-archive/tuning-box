@@ -19,8 +19,8 @@ BuildArch:      noarch
 Requires:       fuel-nailgun
 Requires:       python-alembic
 Requires:       python-flask
-Requires:       python-flask-sqlalchemy
-Requires:       python-flask-restful
+Requires:       python2-flask-sqlalchemy
+Requires:       python2-flask-restful
 
 %description
 This package provides extension to the Nailgun API. This extension allows to

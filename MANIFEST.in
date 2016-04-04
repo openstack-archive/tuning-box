@@ -2,5 +2,6 @@ include AUTHORS
 include ChangeLog
 exclude .gitignore
 exclude .gitreview
+recursive-include tuning_box/migrations *.py
 
 global-exclude *.pyc

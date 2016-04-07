@@ -131,3 +131,59 @@ class TestApp(_BaseCLITest):
         self.cli.run(["--help"])
         self.assertEqual('', self.cli.stderr.getvalue())
         self.assertNotIn('Could not', self.cli.stdout.getvalue())
+
+
+class TestGet(testscenarios.WithScenarios, _BaseCLITest):
+    scenarios = [
+        (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
+        for s in [
+            ('global,json', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1',
+                '{"hello": "world"}',
+            )),
+            ('lowlevel,json', (
+                '/environments/1/lvl1/value1/resources/1/values?effective',
+                'get --env 1 --level lvl1=value1 --resource 1',
+                '{"hello": "world"}',
+            )),
+            ('global,yaml', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --format yaml',
+                'hello: world\n',
+            )),
+            ('lowlevel,yaml', (
+                '/environments/1/lvl1/value1/resources/1/values?effective',
+                'get --env 1 --level lvl1=value1 --resource 1 --format yaml',
+                'hello: world\n',
+            )),
+            ('key,plain', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key hello --format plain',
+                'world',
+            )),
+            ('key,json', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key hello --format json',
+                '{"hello": "world"}',
+            )),
+            ('key,yaml', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key hello --format yaml',
+                'hello: world\n',
+            )),
+        ]
+    ]
+
+    mock_url = None
+    args = None
+    expected_result = None
+
+    def test_get(self):
+        self.req_mock.get(
+            self.BASE_URL + self.mock_url,
+            headers={'Content-Type': 'application/json'},
+            json={'hello': 'world'},
+        )
+        self.cli.run(self.args.split())
+        self.assertEqual(self.expected_result, self.cli.stdout.getvalue())

@@ -7,3 +7,5 @@ flask
 flask-sqlalchemy
 flask-restful
 alembic
+cliff
+requests

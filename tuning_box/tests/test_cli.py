@@ -13,10 +13,74 @@
 import io
 
 from requests_mock.contrib import fixture as req_fixture
+import testscenarios
 
 from tuning_box import cli
+from tuning_box.cli import base as cli_base
 from tuning_box import client as tb_client
 from tuning_box.tests import base
+
+
+class TestLevelsConverter(testscenarios.WithScenarios, base.TestCase):
+    scenarios = [
+        (s[0], dict(zip(('input', 'expected_result', 'expected_error'), s[1])))
+        for s in [
+            ('empty', ('', None, TypeError)),
+            ('one', ('lvl=val', [('lvl', 'val')])),
+            ('two', ('lvl1=val1,lvl2=val2', [('lvl1', 'val1'),
+                                             ('lvl2', 'val2')])),
+            ('no_eq', ('val', None, TypeError)),
+            ('no_eq2', ('lvl1=val2,val', None, TypeError)),
+            ('two_eq', ('lvl1=foo=baz', [('lvl1', 'foo=baz')])),
+        ]
+    ]
+
+    input = None
+    expected_result = None
+    expected_error = None
+
+    def test_levels(self):
+        if self.expected_error:
+            self.assertRaises(
+                self.expected_error, cli_base.level_converter, self.input)
+        else:
+            res = cli_base.level_converter(self.input)
+            self.assertEqual(self.expected_result, res)
+
+
+class FormatOutputTest(testscenarios.WithScenarios, base.TestCase):
+    scenarios = [
+        (s[0], dict(zip(('output', 'format_', 'expected_result'), s[1])))
+        for s in [
+            ('none,plain', (None, 'plain', '')),
+            ('none,json', (None, 'json', 'null')),
+            # TODO(yorik-sar): look into why YAML return those elipsis
+            ('none,yaml', (None, 'yaml', 'null\n...\n')),
+            ('str,plain', (u"a string", 'plain', 'a string')),
+            ('str,json', (u"a string", 'json', '"a string"')),
+            ('str,yaml', (u"a string", 'yaml', 'a string\n...\n')),
+            ('int,plain', (42, 'plain', '42')),
+            ('int,json', (42, 'json', '42')),
+            ('int,yaml', (42, 'yaml', '42\n...\n')),
+            ('float,plain', (1.2, 'plain', '1.2')),
+            ('float,json', (1.2, 'json', '1.2')),
+            ('float,yaml', (1.2, 'yaml', '1.2\n...\n')),
+            ('list,plain', ([1, 2], 'plain', '[1, 2]')),
+            ('list,json', ([1, 2], 'json', '[1, 2]')),
+            ('list,yaml', ([1, 2], 'yaml', '- 1\n- 2\n')),
+            ('dict,plain', ({'a': 1}, 'plain', '{"a": 1}')),
+            ('dict,json', ({'a': 1}, 'json', '{"a": 1}')),
+            ('dict,yaml', ({'a': 1}, 'yaml', 'a: 1\n')),
+        ]
+    ]
+
+    output = None
+    format_ = None
+    expected_result = None
+
+    def test_format_output(self):
+        res = cli_base.format_output(self.output, self.format_)
+        self.assertEqual(self.expected_result, res)
 
 
 class SafeTuningBoxApp(cli.TuningBoxApp):

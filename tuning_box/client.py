@@ -41,3 +41,6 @@ class HTTPClient(object):
 
     def get(self, url, params=None):
         return self.request('GET', url, params=params)
+
+    def put(self, url, body):
+        return self.request('PUT', url, json=body)

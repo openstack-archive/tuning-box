@@ -18,6 +18,7 @@ import flask
 import flask_sqlalchemy
 import sqlalchemy.event
 import sqlalchemy.ext.declarative as sa_decl
+from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import types
 
 try:
@@ -44,20 +45,17 @@ class BaseQuery(flask_sqlalchemy.BaseQuery):
             flask.abort(404)
         return result
 
-    if not hasattr(flask_sqlalchemy.BaseQuery, 'one_or_none'):
-        # for sqlalchemy < 1.0.9
-        from sqlalchemy.orm import exc as orm_exc  # noqa
-
-        def one_or_none(self):
-            ret = list(self)
-            l = len(ret)
-            if l == 1:
-                return ret[0]
-            elif l == 0:
-                return None
-            else:
-                raise orm_exc.MultipleResultsFound(  # noqa
-                    "Multiple rows were found for one_or_none()")
+    # one_or_none is not present in sqlalchemy < 1.0.9
+    def one_or_none(self):
+        ret = list(self)
+        l = len(ret)
+        if l == 1:
+            return ret[0]
+        elif l == 0:
+            return None
+        else:
+            raise orm_exc.MultipleResultsFound(
+                "Multiple rows were found for one_or_none()")
 
 
 def _tablename(cls_name):

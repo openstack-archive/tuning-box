@@ -29,6 +29,8 @@ nosetests.xml
 .testrepository
 .venv
 cover
+.cache
+testdb
 
 # Translations
 *.mo

@@ -237,9 +237,7 @@ class TestApp(base.TestCase):
                 db.Environment(id=9),
                 [],
             )
-            self.assertIsNone(level_value.level)
-            self.assertIsNone(level_value.parent)
-            self.assertIsNone(level_value.value)
+            self.assertIsNone(level_value)
 
     def test_get_environment_level_value_deep(self):
         self._fixture()
@@ -254,10 +252,7 @@ class TestApp(base.TestCase):
             level_value = level_value.parent
             self.assertEqual(level_value.level.name, 'lvl1')
             self.assertEqual(level_value.value, 'val1')
-            level_value = level_value.parent
-            self.assertIsNone(level_value.level)
             self.assertIsNone(level_value.parent)
-            self.assertIsNone(level_value.value)
 
     def test_get_environment_level_value_bad_level(self):
         self._fixture()
@@ -284,9 +279,7 @@ class TestApp(base.TestCase):
                 environment_id=9, resource_definition_id=5).one_or_none()
             self.assertIsNotNone(resource_values)
             self.assertEqual(resource_values.values, {'k': 'v'})
-            self.assertIsNone(resource_values.level_value.level)
-            self.assertIsNone(resource_values.level_value.parent)
-            self.assertIsNone(resource_values.level_value.value)
+            self.assertIsNone(resource_values.level_value)
 
     def test_put_resource_values_deep(self):
         self._fixture()
@@ -307,10 +300,7 @@ class TestApp(base.TestCase):
             level_value = level_value.parent
             self.assertEqual(level_value.level.name, 'lvl1')
             self.assertEqual(level_value.value, 'val1')
-            level_value = level_value.parent
-            self.assertIsNone(level_value.level)
             self.assertIsNone(level_value.parent)
-            self.assertIsNone(level_value.value)
 
     def test_put_resource_values_overrides_root(self):
         self._fixture()
@@ -323,9 +313,7 @@ class TestApp(base.TestCase):
                 environment_id=9, resource_definition_id=5).one_or_none()
             self.assertIsNotNone(resource_values)
             self.assertEqual(resource_values.overrides, {'k': 'v'})
-            self.assertIsNone(resource_values.level_value.level)
-            self.assertIsNone(resource_values.level_value.parent)
-            self.assertIsNone(resource_values.level_value.value)
+            self.assertIsNone(resource_values.level_value)
 
     def test_put_resource_values_overrides_deep(self):
         self._fixture()
@@ -346,10 +334,7 @@ class TestApp(base.TestCase):
             level_value = level_value.parent
             self.assertEqual(level_value.level.name, 'lvl1')
             self.assertEqual(level_value.value, 'val1')
-            level_value = level_value.parent
-            self.assertIsNone(level_value.level)
             self.assertIsNone(level_value.parent)
-            self.assertIsNone(level_value.value)
 
     def test_put_resource_values_bad_level(self):
         self._fixture()

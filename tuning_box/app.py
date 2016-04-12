@@ -120,17 +120,13 @@ class Environment(flask_restful.Resource):
 
 def iter_environment_level_values(environment, levels):
     env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
-    level_pairs = itertools.chain(
-        [(None, (None, None))],  # root level
-        zip(env_levels, levels),
-    )
+    level_pairs = zip(env_levels, levels)
     parent_level_value = None
     for env_level, (level_name, level_value) in level_pairs:
-        if env_level:
-            if env_level.name != level_name:
-                raise exceptions.BadRequest(
-                    "Unexpected level name '%s'. Expected '%s'." % (
-                        level_name, env_level.name))
+        if env_level.name != level_name:
+            raise exceptions.BadRequest(
+                "Unexpected level name '%s'. Expected '%s'." % (
+                    level_name, env_level.name))
         level_value_db = db.get_or_create(
             db.EnvironmentHierarchyLevelValue,
             level=env_level,
@@ -142,6 +138,7 @@ def iter_environment_level_values(environment, levels):
 
 
 def get_environment_level_value(environment, levels):
+    level_value = None
     for level_value in iter_environment_level_values(environment, levels):
         pass
     return level_value
@@ -197,7 +194,7 @@ class ResourceValues(flask_restful.Resource):
                 environment=environment,
             ).all()
             result = {}
-            for level_value in level_values:
+            for level_value in itertools.chain([None], level_values):
                 for resource_value in resource_values:
                     if resource_value.level_value == level_value:
                         result.update(resource_value.values)
@@ -205,10 +202,14 @@ class ResourceValues(flask_restful.Resource):
                         break
             return result
         else:
+            if not level_values:
+                level_value = None
+            else:
+                level_value = level_values[-1]
             resource_values = db.ResourceValues.query.filter_by(
                 resource_definition=resdef,
                 environment=environment,
-                level_value=level_values[-1],
+                level_value=level_value,
             ).one_or_none()
             if not resource_values:
                 return {}
@@ -244,7 +245,7 @@ class ResourceOverrides(flask_restful.Resource):
 
     def get(self, environment_id, resource_id_or_name, levels):
         environment = db.Environment.query.get_or_404(environment_id)
-        level_values = list(iter_environment_level_values(environment, levels))
+        level_value = get_environment_level_value(environment, levels)
         # TODO(yorik-sar): filter by environment
         resdef = db.ResourceDefinition.query.get_by_id_or_name(
             resource_id_or_name)
@@ -259,7 +260,7 @@ class ResourceOverrides(flask_restful.Resource):
         resource_values = db.ResourceValues.query.filter_by(
             resource_definition=resdef,
             environment=environment,
-            level_value=level_values[-1],
+            level_value=level_value,
         ).one_or_none()
         if not resource_values:
             return {}

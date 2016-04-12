@@ -18,9 +18,11 @@ os.environ.setdefault("OS_TEST_DBAPI_ADMIN_CONNECTION", "sqlite:///testdb")
 
 from alembic import command as alembic_command
 from alembic import config as alembic_config
+from alembic import script as alembic_script
 import flask
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
+import sqlalchemy as sa
 import testscenarios
 from werkzeug import exceptions
 
@@ -191,3 +193,80 @@ class TestMigrationsSyncPrefixed(_RealDBPrefixedTest,
 
         return super(TestMigrationsSyncPrefixed, self).include_object(
             object_, name, type_, reflected, compare_to)
+
+
+class TestRemoveFakeRootMigration(_RealDBTest):
+    revision = '9ae15c85fa92'
+    prefix = ''
+
+    def setUp(self):
+        super(TestRemoveFakeRootMigration, self).setUp()
+        self.alembic_config = self.get_alembic_config(self.engine)
+        script_dir = alembic_script.ScriptDirectory.from_config(
+            self.alembic_config)
+        self.migration_module = script_dir.get_revision(self.revision).module
+        self.down_revision = self.migration_module.down_revision
+        self.session = sa.orm.Session(bind=self.engine)
+        self.addCleanup(self.session.close)
+
+    def test_upgrade(self):
+        alembic_command.upgrade(self.alembic_config, self.down_revision)
+        abase = self.migration_module._get_autobase(self.prefix, self.engine)
+        clss = abase.classes
+        env = clss.Environment()
+        env_level = clss.EnvironmentHierarchyLevel(environment=env, name='lvl')
+        self.session.add(env_level)
+        fake_root_1 = clss.EnvironmentHierarchyLevelValue(
+            level_id=None, value=None, parent_id=None)
+        self.session.add(fake_root_1)
+        self.session.flush()
+        child_1 = clss.EnvironmentHierarchyLevelValue(
+            level_id=env_level.id, value="1", parent_id=fake_root_1.id)
+        self.session.add(child_1)
+        fake_root_2 = clss.EnvironmentHierarchyLevelValue(
+            level_id=None, value=None, parent_id=None)
+        self.session.add(fake_root_2)
+        self.session.flush()
+        child_2 = clss.EnvironmentHierarchyLevelValue(
+            level_id=env_level.id, value="2", parent_id=fake_root_2.id)
+        self.session.add(child_2)
+        self.session.commit()
+        alembic_command.upgrade(self.alembic_config, self.revision)
+        ehlvs = self.session.query(clss.EnvironmentHierarchyLevelValue).all()
+        for ehlv in ehlvs:
+            self.assertIsNotNone(ehlv.level_id)
+            self.assertIsNone(ehlv.parent_id)
+
+    def test_downgrade(self):
+        alembic_command.upgrade(self.alembic_config, self.revision)
+        abase = self.migration_module._get_autobase(self.prefix, self.engine)
+        clss = abase.classes
+        env = clss.Environment()
+        env_level = clss.EnvironmentHierarchyLevel(environment=env, name='lvl')
+        self.session.add(env_level)
+        self.session.flush()
+        child_1 = clss.EnvironmentHierarchyLevelValue(
+            level_id=env_level.id, value="1", parent_id=None)
+        self.session.add(child_1)
+        child_2 = clss.EnvironmentHierarchyLevelValue(
+            level_id=env_level.id, value="2", parent_id=None)
+        self.session.add(child_2)
+        self.session.commit()
+        alembic_command.downgrade(self.alembic_config, self.down_revision)
+        fake_root = self.session.query(clss.EnvironmentHierarchyLevelValue) \
+            .filter_by(parent_id=None) \
+            .one()
+        self.assertIsNone(fake_root.level_id)
+        self.assertIsNone(fake_root.value)
+        children = self.session.query(clss.EnvironmentHierarchyLevelValue) \
+            .filter_by(parent_id=fake_root.id) \
+            .all()
+        self.assertItemsEqual(["1", "2"], [c.value for c in children])
+        for child in children:
+            self.assertEqual(fake_root.id, child.parent_id)
+            self.assertEqual(env_level.id, child.level_id)
+
+
+class TestRemoveFakeRootMigrationPrefixed(_RealDBPrefixedTest,
+                                          TestRemoveFakeRootMigration):
+    prefix = 'test_prefix_'

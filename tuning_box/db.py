@@ -184,6 +184,7 @@ class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
     def parent(cls):
         return db.relationship(cls, remote_side=cls.id)
 
+    # TODO(yorik-sar): add UniqueConstraint for all fields
     __repr_attrs__ = ('id', 'level', 'parent', 'value')
 
 
@@ -211,6 +212,8 @@ def get_or_create(cls, **attrs):
         if not item:
             item = cls(**attrs)
             db.session.add(item)
+            # TODO(yorik-sar): handle constraints failure in case of
+            # race condition
     return item
 
 

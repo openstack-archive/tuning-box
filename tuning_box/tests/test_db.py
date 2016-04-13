@@ -140,21 +140,14 @@ class TestEnvironmentHierarchyLevelPrefixed(base.PrefixedTestCaseMixin,
     pass
 
 
-class TestMigrationsSync(testscenarios.WithScenarios,
-                         test_migrations.ModelsMigrationsSync,
-                         base.TestCase,
-                         test_base.DbTestCase):
+class _RealDBTest(testscenarios.WithScenarios,
+                  base.TestCase,
+                  test_base.DbTestCase):
     scenarios = [
         ('sqlite', {'FIXTURE': test_base.DbFixture}),
         # ('mysql', {'FIXTURE': test_base.MySQLOpportunisticFixture}),
         ('postgres', {'FIXTURE': test_base.PostgreSQLOpportunisticFixture}),
     ]
-
-    def get_metadata(self):
-        return db.db.metadata
-
-    def get_engine(self):
-        return self.engine
 
     def get_alembic_config(self, engine):
         config = alembic_config.Config()
@@ -163,12 +156,31 @@ class TestMigrationsSync(testscenarios.WithScenarios,
         config.set_main_option('version_table', 'alembic_version')
         return config
 
+
+class _RealDBPrefixedTest(base.PrefixedTestCaseMixin,
+                          _RealDBTest):
+    def get_alembic_config(self, engine):
+        config = super(_RealDBPrefixedTest, self).get_alembic_config(
+            engine)
+        config.set_main_option('version_table', 'test_prefix_alembic_version')
+        config.set_main_option('table_prefix', 'test_prefix_')
+        return config
+
+
+class TestMigrationsSync(_RealDBTest,
+                         test_migrations.ModelsMigrationsSync):
+    def get_metadata(self):
+        return db.db.metadata
+
+    def get_engine(self):
+        return self.engine
+
     def db_sync(self, engine):
         config = self.get_alembic_config(engine)
         alembic_command.upgrade(config, 'head')
 
 
-class TestMigrationsSyncPrefixed(base.PrefixedTestCaseMixin,
+class TestMigrationsSyncPrefixed(_RealDBPrefixedTest,
                                  TestMigrationsSync):
     def include_object(self, object_, name, type_, reflected, compare_to):
         # ModelsMigrationsSync doesn't pass any config to MigrationContext
@@ -179,10 +191,3 @@ class TestMigrationsSyncPrefixed(base.PrefixedTestCaseMixin,
 
         return super(TestMigrationsSyncPrefixed, self).include_object(
             object_, name, type_, reflected, compare_to)
-
-    def get_alembic_config(self, engine):
-        config = super(TestMigrationsSyncPrefixed, self).get_alembic_config(
-            engine)
-        config.set_main_option('version_table', 'test_prefix_alembic_version')
-        config.set_main_option('table_prefix', 'test_prefix_')
-        return config

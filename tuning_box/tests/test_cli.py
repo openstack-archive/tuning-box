@@ -210,8 +210,12 @@ class TestSet(testscenarios.WithScenarios, _BaseCLITest):
     should_get = True
     stdin = None
 
+    url_last_part = 'values'
+    cmd = 'set'
+
     def test_set(self):
-        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/values'
+        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
+            self.url_last_part
         self.req_mock.put(url)
         if self.should_get:
             self.req_mock.get(
@@ -219,8 +223,8 @@ class TestSet(testscenarios.WithScenarios, _BaseCLITest):
                 headers={'Content-Type': 'application/json'},
                 json={'a': 1, 'b': True},
             )
-        args = ("set --env 1 --level lvl1=value1 --resource 1 " +
-                self.args).split()
+        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
+                             self.args).split()
         if self.stdin:
             self.cli.stdin.write(self.stdin)
             self.cli.stdin.seek(0)
@@ -230,3 +234,8 @@ class TestSet(testscenarios.WithScenarios, _BaseCLITest):
             self.assertEqual('GET', req_history[0].method)
         self.assertEqual('PUT', req_history[-1].method)
         self.assertEqual(self.expected_body, req_history[-1].json())
+
+
+class TestOverride(TestSet):
+    url_last_part = 'overrides'
+    cmd = 'override'

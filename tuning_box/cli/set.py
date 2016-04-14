@@ -118,3 +118,7 @@ class Set(base.ResourceCommand):
         else:
             resource = value
         client.put(resource_url, resource)
+
+
+class Override(Set):
+    url_last_part = 'overrides'

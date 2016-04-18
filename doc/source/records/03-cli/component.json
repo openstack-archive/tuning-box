@@ -1,0 +1,13 @@
+{
+  "name": "comp1",
+  "resource_definitions": [
+    {
+      "name": "resource1",
+      "content": {}
+    },
+    {
+      "name": "slashed/resource",
+      "content": {}
+    }
+  ]
+}

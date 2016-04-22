@@ -151,10 +151,16 @@ class _RealDBTest(testscenarios.WithScenarios,
         ('postgres', {'FIXTURE': test_base.PostgreSQLOpportunisticFixture}),
     ]
 
+    def get_migrations_dir(self):
+        return os.path.join(os.path.dirname(__file__),
+                            '..', '..', 'tuning_box', 'migrations')
+
     def get_alembic_config(self, engine):
         config = alembic_config.Config()
         config.set_main_option('sqlalchemy.url', str(engine.url))
         config.set_main_option('script_location', 'tuning_box/migrations')
+        print "### ", os.path.realpath(os.path.curdir)
+        # config.set_main_option('script_location', self.get_migrations_dir())
         config.set_main_option('version_table', 'alembic_version')
         return config
 

@@ -22,6 +22,7 @@ from alembic import script as alembic_script
 import flask
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
+import pkg_resources
 import sqlalchemy as sa
 import testscenarios
 from werkzeug import exceptions
@@ -151,10 +152,13 @@ class _RealDBTest(testscenarios.WithScenarios,
         ('postgres', {'FIXTURE': test_base.PostgreSQLOpportunisticFixture}),
     ]
 
+    def get_migrations_dir(self):
+        return pkg_resources.resource_filename('tuning_box', 'migrations')
+
     def get_alembic_config(self, engine):
         config = alembic_config.Config()
         config.set_main_option('sqlalchemy.url', str(engine.url))
-        config.set_main_option('script_location', 'tuning_box/migrations')
+        config.set_main_option('script_location', self.get_migrations_dir())
         config.set_main_option('version_table', 'alembic_version')
         return config
 

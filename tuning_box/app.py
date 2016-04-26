@@ -16,12 +16,17 @@ import itertools
 import flask
 import flask_restful
 from flask_restful import fields
+from sqlalchemy import exc as sa_exc
 from werkzeug import exceptions
 
 from tuning_box import converters
 from tuning_box import db
 
-api = flask_restful.Api()
+# These handlers work if PROPAGATE_EXCEPTIONS is off (non-Nailgun case)
+api_errors = {
+    'IntegrityError': {'status': 409},  # sqlalchemy IntegrityError
+}
+api = flask_restful.Api(errors=api_errors)
 
 resource_definition_fields = {
     'id': fields.Integer,
@@ -279,11 +284,19 @@ class ResourceOverrides(flask_restful.Resource):
         return resource_values.overrides
 
 
+def handle_integrity_error(exc):
+    response = flask.jsonify(msg=exc.args[0])
+    response.status_code = 409
+    return response
+
+
 def build_app():
     app = flask.Flask(__name__)
     app.url_map.converters.update(converters.ALL)
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # silence warning
+    # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
+    app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
     db.db.init_app(app)
     return app
 

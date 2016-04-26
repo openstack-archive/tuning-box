@@ -132,6 +132,27 @@ class TestApp(base.TestCase):
         self.assertEqual(res.json, json)
         self._assert_db_effect(db.Component, 8, app.component_fields, json)
 
+    def test_post_component_conflict(self):
+        self._fixture()  # Just for namespace
+        json = self._component_json
+        del json['id']
+        del json['resource_definitions'][0]['id']
+        del json['resource_definitions'][0]['component_id']
+        res = self.client.post('/components', data=json)
+        self.assertEqual(res.status_code, 409)
+        self._assert_not_in_db(db.Component, 8)
+
+    def test_post_component_conflict_propagate_exc(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()  # Just for namespace
+        json = self._component_json
+        del json['id']
+        del json['resource_definitions'][0]['id']
+        del json['resource_definitions'][0]['component_id']
+        res = self.client.post('/components', data=json)
+        self.assertEqual(res.status_code, 409)
+        self._assert_not_in_db(db.Component, 8)
+
     def test_post_component_no_resdef_content(self):
         self._fixture()  # Just for namespace
         json = self._component_json
@@ -205,6 +226,27 @@ class TestApp(base.TestCase):
         self.assertEqual(res.json, json)
         self._assert_db_effect(
             db.Environment, 42, app.environment_fields, json)
+
+    def test_post_environment_preserve_id_conflict(self):
+        self._fixture()
+        json = {
+            'id': 9,
+            'components': [7],
+            'hierarchy_levels': ['lvla', 'lvlb'],
+        }
+        res = self.client.post('/environments', data=json)
+        self.assertEqual(res.status_code, 409)
+
+    def test_post_environment_preserve_id_conflict_propagate_exc(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        json = {
+            'id': 9,
+            'components': [7],
+            'hierarchy_levels': ['lvla', 'lvlb'],
+        }
+        res = self.client.post('/environments', data=json)
+        self.assertEqual(res.status_code, 409)
 
     def test_post_environment_by_component_name(self):
         self._fixture()

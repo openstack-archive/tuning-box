@@ -13,7 +13,12 @@
 # under the License.
 
 import pbr.version
+import pkg_resources
 
 
 __version__ = pbr.version.VersionInfo(
     'tuning_box').version_string()
+
+
+def get_migrations_dir():
+    return pkg_resources.resource_filename('tuning_box', 'migrations')

@@ -13,7 +13,6 @@
 from __future__ import absolute_import
 
 import itertools
-import os
 import threading
 
 from nailgun import db as nailgun_db
@@ -84,4 +83,4 @@ class Extension(extensions.BaseExtension):
 
     @classmethod
     def alembic_migrations_path(cls):
-        return os.path.join(os.path.dirname(__file__), 'migrations')
+        return tuning_box.get_migrations_dir()

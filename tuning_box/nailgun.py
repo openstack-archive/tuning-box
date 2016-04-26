@@ -84,4 +84,4 @@ class Extension(extensions.BaseExtension):
 
     @classmethod
     def alembic_migrations_path(cls):
-        return os.path.join(os.path.dirname(__file__), 'migrations')
+        return tuning_box.get_migrations_dir()

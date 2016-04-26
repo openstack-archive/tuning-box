@@ -12,8 +12,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pkg_resources
 import pbr.version
 
 
 __version__ = pbr.version.VersionInfo(
     'tuning_box').version_string()
+
+
+def get_migrations_dir():
+    return pkg_resources.resource_filename('tuning_box', 'migrations')

@@ -13,6 +13,7 @@
 import json
 
 from flask import testing
+import flask_restful
 from werkzeug import exceptions
 from werkzeug import wrappers
 
@@ -84,6 +85,13 @@ class TestApp(base.TestCase):
             }],
         }
 
+    def _assert_db_effect(self, model, key, fields, expected):
+        with self.app.app_context():
+            obj = model.query.get(key)
+            self.assertIsNotNone(obj)
+            marshalled = flask_restful.marshal(obj, fields)
+        self.assertEqual(expected, marshalled)
+
     def _assert_not_in_db(self, model, key):
         with self.app.app_context():
             obj = model.query.get(key)
@@ -123,6 +131,7 @@ class TestApp(base.TestCase):
         json['resource_definitions'][0]['component_id'] = json['id']
         json['resource_definitions'][0]['id'] = 6
         self.assertEqual(res.json, json)
+        self._assert_db_effect(db.Component, 8, app.component_fields, json)
 
     def test_post_component_no_resdef_content(self):
         self._fixture()  # Just for namespace
@@ -139,6 +148,7 @@ class TestApp(base.TestCase):
         json['resource_definitions'][0]['id'] = 6
         json['resource_definitions'][0]['content'] = None
         self.assertEqual(res.json, json)
+        self._assert_db_effect(db.Component, 8, app.component_fields, json)
 
     def test_delete_component(self):
         self._fixture()
@@ -181,6 +191,8 @@ class TestApp(base.TestCase):
         self.assertEqual(res.status_code, 201)
         json['id'] = 10
         self.assertEqual(res.json, json)
+        self._assert_db_effect(
+            db.Environment, 10, app.environment_fields, json)
 
     def test_post_environment_preserve_id(self):
         self._fixture()
@@ -192,6 +204,8 @@ class TestApp(base.TestCase):
         res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.json, json)
+        self._assert_db_effect(
+            db.Environment, 42, app.environment_fields, json)
 
     def test_post_environment_by_component_name(self):
         self._fixture()
@@ -204,12 +218,15 @@ class TestApp(base.TestCase):
         json['id'] = 10
         json['components'] = [7]
         self.assertEqual(res.json, json)
+        self._assert_db_effect(
+            db.Environment, 10, app.environment_fields, json)
 
     def test_post_environment_404(self):
         self._fixture()
         json = {'components': [8], 'hierarchy_levels': ['lvla', 'lvlb']}
         res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 404)
+        self._assert_not_in_db(db.Environment, 10)
 
     def test_post_environment_by_component_name_404(self):
         self._fixture()
@@ -219,6 +236,7 @@ class TestApp(base.TestCase):
         }
         res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 404)
+        self._assert_not_in_db(db.Environment, 10)
 
     def test_delete_environment(self):
         self._fixture()
@@ -346,6 +364,10 @@ class TestApp(base.TestCase):
             res.json,
             {"message": "Unexpected level name 'lvlx'. Expected 'lvl1'."},
         )
+        with self.app.app_context():
+            resource_values = db.ResourceValues.query.filter_by(
+                environment_id=9, resource_definition_id=5).one_or_none()
+            self.assertIsNone(resource_values)
 
     def test_get_resource_values(self):
         self._fixture()

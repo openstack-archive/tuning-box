@@ -84,6 +84,11 @@ class TestApp(base.TestCase):
             }],
         }
 
+    def _assert_not_in_db(self, model, key):
+        with self.app.app_context():
+            obj = model.query.get(key)
+            self.assertIsNone(obj)
+
     def test_get_components_empty(self):
         res = self.client.get('/components')
         self.assertEqual(res.status_code, 200)
@@ -140,9 +145,7 @@ class TestApp(base.TestCase):
         res = self.client.delete('/components/7')
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
-        with self.app.app_context():
-            component = db.Component.query.get(7)
-            self.assertIsNone(component)
+        self._assert_not_in_db(db.Component, 7)
 
     def test_delete_component_404(self):
         res = self.client.delete('/components/7')
@@ -222,9 +225,7 @@ class TestApp(base.TestCase):
         res = self.client.delete('/environments/9')
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
-        with self.app.app_context():
-            environment = db.Environment.query.get(9)
-            self.assertIsNone(environment)
+        self._assert_not_in_db(db.Environment, 9)
 
     def test_delete_environment_404(self):
         res = self.client.delete('/environments/9')

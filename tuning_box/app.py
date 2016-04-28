@@ -12,8 +12,10 @@
 
 import functools
 import itertools
+import os
 
 import flask
+import flask_jsonschema
 import flask_restful
 from flask_restful import fields
 from sqlalchemy import exc as sa_exc
@@ -34,6 +36,7 @@ resource_definition_fields = {
     'component_id': fields.Integer,
     'content': fields.Raw,
 }
+
 
 component_fields = {
     'id': fields.Integer,
@@ -59,6 +62,7 @@ class ComponentsCollection(flask_restful.Resource):
     def get(self):
         return db.Component.query.all()
 
+    @flask_jsonschema.validate('component', 'request_post')
     @with_transaction
     def post(self):
         component = db.Component(name=flask.request.json['name'])
@@ -284,20 +288,38 @@ class ResourceOverrides(flask_restful.Resource):
         return resource_values.overrides
 
 
+# Custom error handlers
 def handle_integrity_error(exc):
     response = flask.jsonify(msg=exc.args[0])
     response.status_code = 409
     return response
 
 
+def validation_error(error):
+    return flask.make_response(
+        flask.jsonify({'status': 'error', 'message': '{0}'.format(error)}),
+        400
+    )
+
+
 def build_app():
     app = flask.Flask(__name__)
+
+    app.config['JSONSCHEMA_DIR'] = os.path.join(app.root_path, 'schemas', 'v1')
+    # Propagating JSON validation exceptions
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+    flask_jsonschema.JsonSchema(app)
+
     app.url_map.converters.update(converters.ALL)
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # silence warning
+    db.db.init_app(app)
+
     # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
     app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
-    db.db.init_app(app)
+    app.register_error_handler(flask_jsonschema.ValidationError,
+                               validation_error)
+
     return app
 
 

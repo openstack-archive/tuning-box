@@ -552,3 +552,33 @@ class TestApp(base.TestCase):
 
 class TestAppPrefixed(base.PrefixedTestCaseMixin, TestApp):
     pass
+
+
+class TestApiValidation(TestApp):
+    def test_post_component_valid(self):
+        self._fixture()
+        req = {
+            'name': 'component2',
+            'resource_definitions': [
+                {
+                    'name': 'resdef1',
+                    'content': {'key': 'nsname.key'}
+                }
+            ]
+        }
+        resp = self.client.post('/components', data=req)
+        self.assertEqual(resp.status_code, 201)
+
+    def test_post_component_invalid(self):
+        self._fixture()
+        invalid_requests = [
+            None, 0, 'a',
+            [], {},
+            {'name': 'component2'},
+            {'name': None, 'resource_definitions': []}
+        ]
+        for req in invalid_requests:
+            resp = self.client.post('/components', data=req)
+            self.assertEqual(resp.status_code, 400)
+            self.assertEqual('error', resp.json['status'])
+            self.assertIn('Failed validating', resp.json['message'])

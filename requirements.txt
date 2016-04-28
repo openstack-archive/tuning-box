@@ -4,6 +4,7 @@
 
 pbr>=1.6
 flask
+flask-jsonschema
 flask-sqlalchemy
 flask-restful
 alembic

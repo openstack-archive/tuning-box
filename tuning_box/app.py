@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import functools
 import itertools
 
 import flask
@@ -37,6 +38,15 @@ component_fields = {
 }
 
 
+def with_transaction(f):
+    @functools.wraps(f)
+    def inner(*args, **kwargs):
+        with db.db.session.begin():
+            return f(*args, **kwargs)
+
+    return inner
+
+
 @api.resource('/components')
 class ComponentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(component_fields)]
@@ -44,6 +54,7 @@ class ComponentsCollection(flask_restful.Resource):
     def get(self):
         return db.Component.query.all()
 
+    @with_transaction
     def post(self):
         component = db.Component(name=flask.request.json['name'])
         component.resource_definitions = []
@@ -52,7 +63,6 @@ class ComponentsCollection(flask_restful.Resource):
                                            content=resdef_data.get('content'))
             component.resource_definitions.append(resdef)
         db.db.session.add(component)
-        db.db.session.commit()
         return component, 201
 
 
@@ -63,10 +73,10 @@ class Component(flask_restful.Resource):
     def get(self, component_id):
         return db.Component.query.get_or_404(component_id)
 
+    @with_transaction
     def delete(self, component_id):
         component = db.Component.query.get_or_404(component_id)
         db.db.session.delete(component)
-        db.db.session.commit()
         return None, 204
 
 environment_fields = {
@@ -83,6 +93,7 @@ class EnvironmentsCollection(flask_restful.Resource):
     def get(self):
         return db.Environment.query.all()
 
+    @with_transaction
     def post(self):
         component_ids = flask.request.json['components']
         # TODO(yorik-sar): verify that resource names do not clash
@@ -100,7 +111,6 @@ class EnvironmentsCollection(flask_restful.Resource):
         if 'id' in flask.request.json:
             environment.id = flask.request.json['id']
         db.db.session.add(environment)
-        db.db.session.commit()
         return environment, 201
 
 
@@ -111,10 +121,10 @@ class Environment(flask_restful.Resource):
     def get(self, environment_id):
         return db.Environment.query.get_or_404(environment_id)
 
+    @with_transaction
     def delete(self, environment_id):
         environment = db.Environment.query.get_or_404(environment_id)
         db.db.session.delete(environment)
-        db.db.session.commit()
         return None, 204
 
 
@@ -148,6 +158,7 @@ def get_environment_level_value(environment, levels):
     '/environments/<int:environment_id>' +
     '/<levels:levels>resources/<id_or_name:resource_id_or_name>/values')
 class ResourceValues(flask_restful.Resource):
+    @with_transaction
     def put(self, environment_id, levels, resource_id_or_name):
         environment = db.Environment.query.get_or_404(environment_id)
         level_value = get_environment_level_value(environment, levels)
@@ -168,9 +179,9 @@ class ResourceValues(flask_restful.Resource):
             level_value=level_value,
         )
         esv.values = flask.request.json
-        db.db.session.commit()
         return None, 204
 
+    @with_transaction
     def get(self, environment_id, resource_id_or_name, levels):
         environment = db.Environment.query.get_or_404(environment_id)
         level_values = list(iter_environment_level_values(environment, levels))
@@ -220,6 +231,7 @@ class ResourceValues(flask_restful.Resource):
     '/environments/<int:environment_id>' +
     '/<levels:levels>resources/<id_or_name:resource_id_or_name>/overrides')
 class ResourceOverrides(flask_restful.Resource):
+    @with_transaction
     def put(self, environment_id, levels, resource_id_or_name):
         environment = db.Environment.query.get_or_404(environment_id)
         level_value = get_environment_level_value(environment, levels)
@@ -240,9 +252,9 @@ class ResourceOverrides(flask_restful.Resource):
             level_value=level_value,
         )
         esv.overrides = flask.request.json
-        db.db.session.commit()
         return None, 204
 
+    @with_transaction
     def get(self, environment_id, resource_id_or_name, levels):
         environment = db.Environment.query.get_or_404(environment_id)
         level_value = get_environment_level_value(environment, levels)

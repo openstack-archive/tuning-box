@@ -26,7 +26,7 @@ try:
 except ImportError:
     pass  # in 2.x reload is builtin
 
-db = flask_sqlalchemy.SQLAlchemy()
+db = flask_sqlalchemy.SQLAlchemy(session_options={'autocommit': True})
 pk_type = db.Integer
 pk = functools.partial(db.Column, pk_type, primary_key=True)
 

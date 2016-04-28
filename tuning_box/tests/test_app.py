@@ -51,7 +51,7 @@ class TestApp(base.TestCase):
         self.client = Client(self.app)
 
     def _fixture(self):
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             component = db.Component(
                 id=7,
                 name='component1',
@@ -70,7 +70,6 @@ class TestApp(base.TestCase):
             hierarchy_levels[1].parent = hierarchy_levels[0]
             environment.hierarchy_levels = hierarchy_levels
             db.db.session.add(environment)
-            db.db.session.commit()
 
     @property
     def _component_json(self):
@@ -251,7 +250,7 @@ class TestApp(base.TestCase):
 
     def test_get_environment_level_value_root(self):
         self._fixture()
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             level_value = app.get_environment_level_value(
                 db.Environment(id=9),
                 [],
@@ -260,7 +259,7 @@ class TestApp(base.TestCase):
 
     def test_get_environment_level_value_deep(self):
         self._fixture()
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             level_value = app.get_environment_level_value(
                 db.Environment(id=9),
                 [('lvl1', 'val1'), ('lvl2', 'val2')],
@@ -275,7 +274,7 @@ class TestApp(base.TestCase):
 
     def test_get_environment_level_value_bad_level(self):
         self._fixture()
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             exc = self.assertRaises(
                 exceptions.BadRequest,
                 app.get_environment_level_value,

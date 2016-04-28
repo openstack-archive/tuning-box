@@ -48,13 +48,13 @@ class TestDB(_DBTestCase):
         pass
 
     def test_get_or_create_get(self):
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             db.db.session.add(db.Component(name="nsname"))
             res = db.get_or_create(db.Component, name="nsname")
             self.assertEqual(res.name, "nsname")
 
     def test_get_or_create_create(self):
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             res = db.get_or_create(db.Component, name="nsname")
             self.assertIsNotNone(res.id)
             self.assertEqual(res.name, "nsname")
@@ -100,11 +100,11 @@ class TestDBPrefixed(base.PrefixedTestCaseMixin, TestDB):
 class TestEnvironmentHierarchyLevel(_DBTestCase):
     def setUp(self):
         super(TestEnvironmentHierarchyLevel, self).setUp()
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             session = db.db.session
             environment = db.Environment()
             session.add(environment)
-            session.commit()
+            session.flush()
             self.environment_id = environment.id
 
     def _create_levels(self, num):
@@ -118,14 +118,14 @@ class TestEnvironmentHierarchyLevel(_DBTestCase):
             )
             session.add(lvl)
             last_lvl = lvl
-        session.commit()
+        session.flush()
 
     def _test_get_for_environment(self, num, expected):
-        with self.app.app_context():
+        with self.app.app_context(), db.db.session.begin():
             self._create_levels(num)
-            res = db.EnvironmentHierarchyLevel.get_for_environment(
-                db.Environment(id=self.environment_id))
-        level_names = [level.name for level in res]
+            env = db.Environment(id=self.environment_id)
+            res = db.EnvironmentHierarchyLevel.get_for_environment(env)
+            level_names = [level.name for level in res]
         self.assertEqual(level_names, expected)
 
     def test_get_for_environment_empty(self):

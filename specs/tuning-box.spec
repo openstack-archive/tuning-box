@@ -1,5 +1,5 @@
 %define name tuning-box
-%{!?version: %define version 0.0.1}
+%{!?version: %define version 0.1.0}
 %{!?release: %define release 1}
 
 Name:           %{name}

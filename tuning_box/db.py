@@ -31,6 +31,14 @@ pk_type = db.Integer
 pk = functools.partial(db.Column, pk_type, primary_key=True)
 
 
+def with_transaction(f):
+    @functools.wraps(f)
+    def inner(*args, **kwargs):
+        with db.session.begin():
+            return f(*args, **kwargs)
+    return inner
+
+
 def fk(cls, **kwargs):
     return db.Column(pk_type, db.ForeignKey(cls.id), **kwargs)
 

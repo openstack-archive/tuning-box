@@ -1,0 +1,8 @@
+uwsgi:
+    socket: :5000
+    protocol: http
+    module: tuning_box.uwsgi_app
+    callable: app
+    pythonpath: %d/..
+    env: TUNINGBOX_SETTINGS=%d/tuningbox_config.example.py
+    logto: /tmp/tuningbox.log

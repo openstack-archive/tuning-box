@@ -21,6 +21,7 @@ from werkzeug import exceptions
 
 from tuning_box import converters
 from tuning_box import db
+from tuning_box import logger
 
 # These handlers work if PROPAGATE_EXCEPTIONS is off (non-Nailgun case)
 api_errors = {
@@ -300,6 +301,7 @@ def build_app():
     # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
     app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
     db.db.init_app(app)
+    logger.init_logger(app)
     return app
 
 

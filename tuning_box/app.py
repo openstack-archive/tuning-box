@@ -21,6 +21,7 @@ from werkzeug import exceptions
 
 from tuning_box import converters
 from tuning_box import db
+from tuning_box import logger
 
 # These handlers work if PROPAGATE_EXCEPTIONS is off (non-Nailgun case)
 api_errors = {
@@ -290,7 +291,7 @@ def handle_integrity_error(exc):
     return response
 
 
-def build_app():
+def build_app(configure_logging=True):
     app = flask.Flask(__name__)
     app.url_map.converters.update(converters.ALL)
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
@@ -300,6 +301,9 @@ def build_app():
     # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
     app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
     db.db.init_app(app)
+    if configure_logging:
+        log_level = app.config.get('LOG_LEVEL', 'INFO')
+        logger.init_logger(log_level)
     return app
 
 

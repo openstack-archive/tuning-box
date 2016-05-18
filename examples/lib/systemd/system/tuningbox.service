@@ -1,0 +1,12 @@
+[Unit]
+Name=Tunigbox service
+ConditionPathExists=/etc/tuningbox/uwsgi_tuningbox.yaml
+
+[Service]
+ExecStart=/usr/sbin/uwsgi -y /etc/tuningbox/uwsgi_tuningbox.yaml
+ExecReload=/usr/sbin/uwsgi --reload /var/run/tuningbox.pid
+ExecStop=/usr/sbin/uwsgi --stop /var/run/tuningbox.pid
+ExecStopPost=/usr/bin/rm -f /var/run/tuningbox.pid
+
+[Install]
+WantedBy=multi-user.target

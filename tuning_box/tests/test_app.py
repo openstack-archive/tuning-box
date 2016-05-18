@@ -43,7 +43,7 @@ class Client(testing.FlaskClient):
 class TestApp(base.TestCase):
     def setUp(self):
         super(TestApp, self).setUp()
-        self.app = app.build_app()
+        self.app = app.build_app(configure_logging=False)
         self.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
         with self.app.app_context():
             db.fix_sqlite()

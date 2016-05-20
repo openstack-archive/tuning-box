@@ -295,6 +295,8 @@ def build_app():
     app.url_map.converters.update(converters.ALL)
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # silence warning
+    # TUNINGBOX_SETTINGS is the path to the file with tuning_box configuration
+    app.config.from_envvar('TUNINGBOX_SETTINGS', silent=True)
     # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
     app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
     db.db.init_app(app)

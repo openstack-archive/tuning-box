@@ -10,16 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-LOG_LEVEL = 'DEBUG'
+from keystonemiddleware import auth_token
 
-SQLALCHEMY_DATABASE_URI = \
-    'postgresql://tuningbox:tuningbox@localhost/tuningbox'
 
-AUTH = {
-    'auth_host': '127.0.0.1',
-    'auth_protocol': 'http',
-    'auth_version': 'v2.0',
-    'admin_user': 'tuningbox',
-    'admin_password': 'tuningbox',
-    'admin_tenant_name': 'services'
-}
+class KeystoneMiddleware(auth_token.AuthProtocol):
+
+    def __init__(self, app):
+        self.app = app.wsgi_app
+        auth_settings = app.config.get('AUTH')
+        super(KeystoneMiddleware, self).__init__(self.app, auth_settings)

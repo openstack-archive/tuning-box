@@ -9,3 +9,4 @@ flask-restful
 alembic
 cliff
 requests
+keystonemiddleware>=4.0.0,!=4.1.0,!=4.5.0

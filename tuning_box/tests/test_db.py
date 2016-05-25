@@ -17,7 +17,6 @@ import os
 os.environ.setdefault("OS_TEST_DBAPI_ADMIN_CONNECTION", "sqlite:///testdb")
 
 from alembic import command as alembic_command
-from alembic import config as alembic_config
 from alembic import script as alembic_script
 import flask
 from oslo_db.sqlalchemy import test_base
@@ -26,8 +25,8 @@ import sqlalchemy as sa
 import testscenarios
 from werkzeug import exceptions
 
-import tuning_box
 from tuning_box import db
+from tuning_box import migration
 from tuning_box.tests import base
 
 
@@ -153,12 +152,7 @@ class _RealDBTest(testscenarios.WithScenarios,
     ]
 
     def get_alembic_config(self, engine):
-        config = alembic_config.Config()
-        config.set_main_option('sqlalchemy.url', str(engine.url))
-        config.set_main_option(
-            'script_location', tuning_box.get_migrations_dir())
-        config.set_main_option('version_table', 'alembic_version')
-        return config
+        return migration.get_alembic_config(engine)
 
 
 class _RealDBPrefixedTest(base.PrefixedTestCaseMixin,

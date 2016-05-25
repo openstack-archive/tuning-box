@@ -44,6 +44,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %{python_sitelib}/tuning_box/
 %{python_sitelib}/tuning_box-%{version}*.egg-info/
+/usr/bin/tuningbox_db_downgrade
+/usr/bin/tuningbox_db_upgrade
 
 %changelog
 * Fri Mar 18 2016 Oleg Gelbukh <ogelbukh@mirantis.com> 9.0.0

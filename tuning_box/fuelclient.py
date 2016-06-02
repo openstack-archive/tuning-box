@@ -23,10 +23,11 @@ from tuning_box import client as tb_client
 
 
 class FuelHTTPClient(tb_client.HTTPClient):
-    def __init__(self):
+    def __init__(self, service_name='tuningbox', service_type='config'):
         service_catalog = fc_client.APIClient.keystone_client.service_catalog
         base_url = service_catalog.url_for(
-            service_type='config',
+            service_name=service_name,
+            service_type=service_type,
             endpoint_type='publicURL',
         )
         super(FuelHTTPClient, self).__init__(base_url)
@@ -65,3 +66,20 @@ class Config(command.Command):
         client = FuelHTTPClient()
         app = cli.TuningBoxApp(client)
         app.run(parsed_args.args)
+
+
+class FuelBaseCommandSSL(cli_base.BaseCommand):
+    def get_client(self):
+        return FuelHTTPClient(service_name='tuningbox_ssl')
+
+
+class GetSSL(FuelBaseCommandSSL, cli_get.Get):
+    pass
+
+
+class SetSSL(FuelBaseCommandSSL, cli_set.Set):
+    pass
+
+
+class OverrideSSL(FuelBaseCommandSSL, cli_set.Override):
+    pass

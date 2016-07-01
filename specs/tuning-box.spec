@@ -32,7 +32,7 @@ between Nailgun and 3rd-party deployment and configuration management services
 %setup -cq -n %{name}-%{version}
 
 %build
-cd %{_builddir}/%{name}-%{version} && PBR_VERSION=%{version} %{__python} setup.py build
+ip a && traceroute 172.18.184.28 && %{_builddir}/%{name}-%{version} && PBR_VERSION=%{version} %{__python} setup.py build
 
 %install
 cd %{_builddir}/%{name}-%{version} && PBR_VERSION=%{version} %{__python} setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT

@@ -21,6 +21,7 @@ from werkzeug import exceptions
 
 from tuning_box import converters
 from tuning_box import db
+from tuning_box.library import components
 from tuning_box import logger
 from tuning_box.middleware import keystone
 
@@ -30,19 +31,8 @@ api_errors = {
 }
 api = flask_restful.Api(errors=api_errors)
 
-resource_definition_fields = {
-    'id': fields.Integer,
-    'name': fields.String,
-    'component_id': fields.Integer,
-    'content': fields.Raw,
-}
-
-component_fields = {
-    'id': fields.Integer,
-    'name': fields.String,
-    'resource_definitions': fields.List(
-        fields.Nested(resource_definition_fields)),
-}
+api.add_resource(components.ComponentsCollection, '/components')
+api.add_resource(components.Component, '/components/<int:component_id>')
 
 
 def with_transaction(f):
@@ -53,38 +43,6 @@ def with_transaction(f):
 
     return inner
 
-
-@api.resource('/components')
-class ComponentsCollection(flask_restful.Resource):
-    method_decorators = [flask_restful.marshal_with(component_fields)]
-
-    def get(self):
-        return db.Component.query.all()
-
-    @with_transaction
-    def post(self):
-        component = db.Component(name=flask.request.json['name'])
-        component.resource_definitions = []
-        for resdef_data in flask.request.json.get('resource_definitions'):
-            resdef = db.ResourceDefinition(name=resdef_data['name'],
-                                           content=resdef_data.get('content'))
-            component.resource_definitions.append(resdef)
-        db.db.session.add(component)
-        return component, 201
-
-
-@api.resource('/components/<int:component_id>')
-class Component(flask_restful.Resource):
-    method_decorators = [flask_restful.marshal_with(component_fields)]
-
-    def get(self, component_id):
-        return db.Component.query.get_or_404(component_id)
-
-    @with_transaction
-    def delete(self, component_id):
-        component = db.Component.query.get_or_404(component_id)
-        db.db.session.delete(component)
-        return None, 204
 
 environment_fields = {
     'id': fields.Integer,

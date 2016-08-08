@@ -40,9 +40,10 @@ class Client(testing.FlaskClient):
         return super(Client, self).open(*args, **kwargs)
 
 
-class TestApp(base.TestCase):
+class BaseTest(base.TestCase):
+
     def setUp(self):
-        super(TestApp, self).setUp()
+        super(BaseTest, self).setUp()
         self.app = app.build_app(configure_logging=False,
                                  with_keystone=False)
         self.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
@@ -72,19 +73,6 @@ class TestApp(base.TestCase):
             environment.hierarchy_levels = hierarchy_levels
             db.db.session.add(environment)
 
-    @property
-    def _component_json(self):
-        return {
-            'id': 7,
-            'name': 'component1',
-            'resource_definitions': [{
-                'id': 5,
-                'name': 'resdef1',
-                'component_id': 7,
-                'content': {'key': 'nsname.key'},
-            }],
-        }
-
     def _assert_db_effect(self, model, key, fields, expected):
         with self.app.app_context():
             obj = model.query.get(key)
@@ -97,90 +85,8 @@ class TestApp(base.TestCase):
             obj = model.query.get(key)
             self.assertIsNone(obj)
 
-    def test_get_components_empty(self):
-        res = self.client.get('/components')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [])
 
-    def test_get_components(self):
-        self._fixture()
-        res = self.client.get('/components')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [self._component_json])
-
-    def test_get_one_component(self):
-        self._fixture()
-        res = self.client.get('/components/7')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, self._component_json)
-
-    def test_get_one_component_404(self):
-        res = self.client.get('/components/7')
-        self.assertEqual(res.status_code, 404)
-
-    def test_post_component(self):
-        self._fixture()  # Just for namespace
-        json = self._component_json
-        del json['id']
-        del json['resource_definitions'][0]['id']
-        del json['resource_definitions'][0]['component_id']
-        json['name'] = 'component2'
-        res = self.client.post('/components', data=json)
-        self.assertEqual(res.status_code, 201)
-        json['id'] = 8
-        json['resource_definitions'][0]['component_id'] = json['id']
-        json['resource_definitions'][0]['id'] = 6
-        self.assertEqual(res.json, json)
-        self._assert_db_effect(db.Component, 8, app.component_fields, json)
-
-    def test_post_component_conflict(self):
-        self._fixture()  # Just for namespace
-        json = self._component_json
-        del json['id']
-        del json['resource_definitions'][0]['id']
-        del json['resource_definitions'][0]['component_id']
-        res = self.client.post('/components', data=json)
-        self.assertEqual(res.status_code, 409)
-        self._assert_not_in_db(db.Component, 8)
-
-    def test_post_component_conflict_propagate_exc(self):
-        self.app.config["PROPAGATE_EXCEPTIONS"] = True
-        self._fixture()  # Just for namespace
-        json = self._component_json
-        del json['id']
-        del json['resource_definitions'][0]['id']
-        del json['resource_definitions'][0]['component_id']
-        res = self.client.post('/components', data=json)
-        self.assertEqual(res.status_code, 409)
-        self._assert_not_in_db(db.Component, 8)
-
-    def test_post_component_no_resdef_content(self):
-        self._fixture()  # Just for namespace
-        json = self._component_json
-        del json['id']
-        del json['resource_definitions'][0]['id']
-        del json['resource_definitions'][0]['component_id']
-        del json['resource_definitions'][0]['content']
-        json['name'] = 'component2'
-        res = self.client.post('/components', data=json)
-        self.assertEqual(res.status_code, 201)
-        json['id'] = 8
-        json['resource_definitions'][0]['component_id'] = json['id']
-        json['resource_definitions'][0]['id'] = 6
-        json['resource_definitions'][0]['content'] = None
-        self.assertEqual(res.json, json)
-        self._assert_db_effect(db.Component, 8, app.component_fields, json)
-
-    def test_delete_component(self):
-        self._fixture()
-        res = self.client.delete('/components/7')
-        self.assertEqual(res.status_code, 204)
-        self.assertEqual(res.data, b'')
-        self._assert_not_in_db(db.Component, 7)
-
-    def test_delete_component_404(self):
-        res = self.client.delete('/components/7')
-        self.assertEqual(res.status_code, 404)
+class TestApp(BaseTest):
 
     def test_get_environments_empty(self):
         res = self.client.get('/environments')

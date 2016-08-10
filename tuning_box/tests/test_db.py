@@ -26,7 +26,6 @@ import testscenarios
 from werkzeug import exceptions
 
 from tuning_box import db
-from tuning_box import migration
 from tuning_box.tests import base
 
 
@@ -34,12 +33,11 @@ class _DBTestCase(base.TestCase):
     def setUp(self):
         super(_DBTestCase, self).setUp()
         self.app = flask.Flask('test')
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = self.DB_URI
         self.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # no warning
         db.db.init_app(self.app)
         with self.app.app_context():
-            db.fix_sqlite()
-            db.db.create_all()
+            self._clean_db()
 
 
 class TestDB(_DBTestCase):
@@ -146,13 +144,9 @@ class _RealDBTest(testscenarios.WithScenarios,
                   base.TestCase,
                   test_base.DbTestCase):
     scenarios = [
-        ('sqlite', {'FIXTURE': test_base.DbFixture}),
         # ('mysql', {'FIXTURE': test_base.MySQLOpportunisticFixture}),
         ('postgres', {'FIXTURE': test_base.PostgreSQLOpportunisticFixture}),
     ]
-
-    def get_alembic_config(self, engine):
-        return migration.get_alembic_config(engine)
 
 
 class _RealDBPrefixedTest(base.PrefixedTestCaseMixin,

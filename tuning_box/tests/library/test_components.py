@@ -61,12 +61,12 @@ class TestComponents(BaseTest):
         json['name'] = 'component2'
         res = self.client.post('/components', data=json)
         self.assertEqual(res.status_code, 201)
-        json['id'] = 8
+        json['id'] = res.json['id']
         json['resource_definitions'][0]['component_id'] = json['id']
         json['resource_definitions'][0]['id'] = 6
-        self.assertEqual(res.json, json)
-        self._assert_db_effect(db.Component, 8, components.component_fields,
-                               json)
+        self.assertItemsEqual(res.json, json)
+        self._assert_db_effect(db.Component, res.json['id'],
+                               components.component_fields, json)
 
     def test_post_component_conflict(self):
         self._fixture()  # Just for namespace
@@ -99,13 +99,13 @@ class TestComponents(BaseTest):
         json['name'] = 'component2'
         res = self.client.post('/components', data=json)
         self.assertEqual(res.status_code, 201)
-        json['id'] = 8
+        json['id'] = res.json['id']
         json['resource_definitions'][0]['component_id'] = json['id']
         json['resource_definitions'][0]['id'] = 6
         json['resource_definitions'][0]['content'] = None
-        self.assertEqual(res.json, json)
-        self._assert_db_effect(db.Component, 8, components.component_fields,
-                               json)
+        self.assertItemsEqual(res.json, json)
+        self._assert_db_effect(db.Component, res.json['id'],
+                               components.component_fields, json)
 
     def test_delete_component(self):
         self._fixture()

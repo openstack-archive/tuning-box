@@ -46,10 +46,9 @@ class BaseTest(base.TestCase):
         super(BaseTest, self).setUp()
         self.app = app.build_app(configure_logging=False,
                                  with_keystone=False)
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = self.DB_URI
         with self.app.app_context():
-            db.fix_sqlite()
-            db.db.create_all()
+            self._clean_db()
         self.client = Client(self.app)
 
     def _fixture(self):
@@ -78,7 +77,7 @@ class BaseTest(base.TestCase):
             obj = model.query.get(key)
             self.assertIsNotNone(obj)
             marshalled = flask_restful.marshal(obj, fields)
-        self.assertEqual(expected, marshalled)
+        self.assertItemsEqual(expected, marshalled)
 
     def _assert_not_in_db(self, model, key):
         with self.app.app_context():
@@ -96,16 +95,20 @@ class TestApp(BaseTest):
     def test_get_environments(self):
         self._fixture()
         res = self.client.get('/environments')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [{'id': 9, 'components': [7],
-                                     'hierarchy_levels': ['lvl1', 'lvl2']}])
+        self.assertEqual(200, res.status_code)
+        self.assertItemsEqual(
+            {'id': 9, 'components': [7], 'hierarchy_levels': ['lvl1', 'lvl2']},
+            res.json[0]
+        )
 
     def test_get_one_environment(self):
         self._fixture()
         res = self.client.get('/environments/9')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'id': 9, 'components': [7],
-                                    'hierarchy_levels': ['lvl1', 'lvl2']})
+        self.assertEqual(200, res.status_code)
+        self.assertItemsEqual(
+            {'id': 9, 'components': [7], 'hierarchy_levels': ['lvl1', 'lvl2']},
+            res.json
+        )
 
     def test_get_one_environment_404(self):
         res = self.client.get('/environments/9')
@@ -115,11 +118,11 @@ class TestApp(BaseTest):
         self._fixture()
         json = {'components': [7], 'hierarchy_levels': ['lvla', 'lvlb']}
         res = self.client.post('/environments', data=json)
-        self.assertEqual(res.status_code, 201)
-        json['id'] = 10
-        self.assertEqual(res.json, json)
+        self.assertEqual(201, res.status_code)
+        json['id'] = res.json['id']
+        self.assertItemsEqual(json, res.json)
         self._assert_db_effect(
-            db.Environment, 10, app.environment_fields, json)
+            db.Environment, res.json['id'], app.environment_fields, json)
 
     def test_post_environment_preserve_id(self):
         self._fixture()
@@ -130,7 +133,7 @@ class TestApp(BaseTest):
         }
         res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 201)
-        self.assertEqual(res.json, json)
+        self.assertItemsEqual(res.json, json)
         self._assert_db_effect(
             db.Environment, 42, app.environment_fields, json)
 
@@ -163,11 +166,11 @@ class TestApp(BaseTest):
         }
         res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 201)
-        json['id'] = 10
+        json['id'] = res.json['id']
         json['components'] = [7]
-        self.assertEqual(res.json, json)
+        self.assertItemsEqual(res.json, json)
         self._assert_db_effect(
-            db.Environment, 10, app.environment_fields, json)
+            db.Environment, res.json['id'], app.environment_fields, json)
 
     def test_post_environment_404(self):
         self._fixture()

@@ -39,14 +39,14 @@ class TestComponents(BaseTest):
     def test_get_components(self):
         self._fixture()
         res = self.client.get('/components')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [self._component_json])
+        self.assertEqual(200, res.status_code)
+        self.assertItemsEqual(self._component_json, res.json[0])
 
     def test_get_one_component(self):
         self._fixture()
         res = self.client.get('/components/7')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, self._component_json)
+        self.assertEqual(200, res.status_code)
+        self.assertItemsEqual(self._component_json, res.json)
 
     def test_get_one_component_404(self):
         res = self.client.get('/components/7')
@@ -60,13 +60,13 @@ class TestComponents(BaseTest):
         del json['resource_definitions'][0]['component_id']
         json['name'] = 'component2'
         res = self.client.post('/components', data=json)
-        self.assertEqual(res.status_code, 201)
-        json['id'] = 8
+        self.assertEqual(201, res.status_code)
+        json['id'] = res.json['id']
         json['resource_definitions'][0]['component_id'] = json['id']
         json['resource_definitions'][0]['id'] = 6
         self.assertEqual(res.json, json)
-        self._assert_db_effect(db.Component, 8, components.component_fields,
-                               json)
+        self._assert_db_effect(db.Component, res.json['id'],
+                               components.component_fields, json)
 
     def test_post_component_conflict(self):
         self._fixture()  # Just for namespace
@@ -99,13 +99,13 @@ class TestComponents(BaseTest):
         json['name'] = 'component2'
         res = self.client.post('/components', data=json)
         self.assertEqual(res.status_code, 201)
-        json['id'] = 8
+        json['id'] = res.json['id']
         json['resource_definitions'][0]['component_id'] = json['id']
         json['resource_definitions'][0]['id'] = 6
         json['resource_definitions'][0]['content'] = None
-        self.assertEqual(res.json, json)
-        self._assert_db_effect(db.Component, 8, components.component_fields,
-                               json)
+        self.assertItemsEqual(json, res.json)
+        self._assert_db_effect(db.Component, res.json['id'],
+                               components.component_fields, json)
 
     def test_delete_component(self):
         self._fixture()
@@ -130,16 +130,16 @@ class TestComponents(BaseTest):
 
         # Updating name
         res = self.client.put(component_url, data={'name': new_name})
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(204, res.status_code)
         actual_component = self.client.get(component_url).json
         self.assertEqual(new_name, actual_component['name'])
-        self.assertEqual(initial_data['resource_definitions'],
-                         actual_component['resource_definitions'])
+        self.assertItemsEqual(initial_data['resource_definitions'],
+                              actual_component['resource_definitions'])
 
         # Updating resource_definitions
         res = self.client.put(component_url,
                               data={'resource_definitions': []})
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(204, res.status_code)
         actual_component = self.client.get(component_url).json
         self.assertEqual([], actual_component['resource_definitions'])
 
@@ -149,12 +149,12 @@ class TestComponents(BaseTest):
             data={'name': initial_data['name'],
                   'resource_definitions': initial_data['resource_definitions']}
         )
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(204, res.status_code)
         actual_component = self.client.get(component_url).json
         self.assertEqual(initial_data['name'],
                          actual_component['name'])
-        self.assertEqual(initial_data['resource_definitions'],
-                         actual_component['resource_definitions'])
+        self.assertItemsEqual(initial_data['resource_definitions'],
+                              actual_component['resource_definitions'])
 
     def test_put_component_ignore_changing_id(self):
         self._fixture()
@@ -165,8 +165,8 @@ class TestComponents(BaseTest):
         res = self.client.put(component_url,
                               data={'name': new_name, 'id': None,
                                     'fake': 'xxxx'})
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(204, res.status_code)
         actual_component = self.client.get(component_url).json
         self.assertEqual(new_name, actual_component['name'])
-        self.assertEqual(initial_data['resource_definitions'],
-                         actual_component['resource_definitions'])
+        self.assertItemsEqual(initial_data['resource_definitions'],
+                              actual_component['resource_definitions'])

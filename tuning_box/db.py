@@ -47,12 +47,12 @@ def fk(cls, **kwargs):
 
 
 class BaseQuery(flask_sqlalchemy.BaseQuery):
-    def get_by_id_or_name(self, id_or_name):
+    def get_by_id_or_name(self, id_or_name, fail_on_none=True):
         if isinstance(id_or_name, int):
             result = self.get(id_or_name)
         else:
             result = self.filter_by(name=id_or_name).one_or_none()
-        if result is None:
+        if fail_on_none and result is None:
             flask.abort(404)
         return result
 

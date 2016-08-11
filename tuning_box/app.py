@@ -15,24 +15,33 @@ import itertools
 
 import flask
 import flask_restful
-from flask_restful import fields
 from sqlalchemy import exc as sa_exc
 from werkzeug import exceptions
 
 from tuning_box import converters
 from tuning_box import db
+from tuning_box import errors
 from tuning_box.library import components
+from tuning_box.library import environments
 from tuning_box import logger
 from tuning_box.middleware import keystone
 
 # These handlers work if PROPAGATE_EXCEPTIONS is off (non-Nailgun case)
 api_errors = {
     'IntegrityError': {'status': 409},  # sqlalchemy IntegrityError
+    'TuningboxIntegrityError': {'status': 409},
+    'TuningboxNotFound': {'status': 404}
 }
 api = flask_restful.Api(errors=api_errors)
 
 api.add_resource(components.ComponentsCollection, '/components')
 api.add_resource(components.Component, '/components/<int:component_id>')
+api.add_resource(environments.EnvironmentsCollection, '/environments')
+api.add_resource(
+    environments.Environment,
+    '/environments/<int:environment_id>',  # Backward compatibility support
+    '/environment/<int:environment_id>'
+)
 
 
 def with_transaction(f):
@@ -42,55 +51,6 @@ def with_transaction(f):
             return f(*args, **kwargs)
 
     return inner
-
-
-environment_fields = {
-    'id': fields.Integer,
-    'components': fields.List(fields.Integer(attribute='id')),
-    'hierarchy_levels': fields.List(fields.String(attribute='name')),
-}
-
-
-@api.resource('/environments')
-class EnvironmentsCollection(flask_restful.Resource):
-    method_decorators = [flask_restful.marshal_with(environment_fields)]
-
-    def get(self):
-        return db.Environment.query.all()
-
-    @with_transaction
-    def post(self):
-        component_ids = flask.request.json['components']
-        # TODO(yorik-sar): verify that resource names do not clash
-        components = [db.Component.query.get_by_id_or_name(i)
-                      for i in component_ids]
-
-        hierarchy_levels = []
-        level = None
-        for name in flask.request.json['hierarchy_levels']:
-            level = db.EnvironmentHierarchyLevel(name=name, parent=level)
-            hierarchy_levels.append(level)
-
-        environment = db.Environment(components=components,
-                                     hierarchy_levels=hierarchy_levels)
-        if 'id' in flask.request.json:
-            environment.id = flask.request.json['id']
-        db.db.session.add(environment)
-        return environment, 201
-
-
-@api.resource('/environments/<int:environment_id>')
-class Environment(flask_restful.Resource):
-    method_decorators = [flask_restful.marshal_with(environment_fields)]
-
-    def get(self, environment_id):
-        return db.Environment.query.get_or_404(environment_id)
-
-    @with_transaction
-    def delete(self, environment_id):
-        environment = db.Environment.query.get_or_404(environment_id)
-        db.db.session.delete(environment)
-        return None, 204
 
 
 def iter_environment_level_values(environment, levels):
@@ -250,6 +210,12 @@ def handle_integrity_error(exc):
     return response
 
 
+def handle_object_not_found(exc):
+    response = flask.jsonify(msg=exc.args[0])
+    response.status_code = 404
+    return response
+
+
 def build_app(configure_logging=True, with_keystone=True):
     app = flask.Flask(__name__)
     app.url_map.converters.update(converters.ALL)
@@ -259,6 +225,10 @@ def build_app(configure_logging=True, with_keystone=True):
     app.config.from_envvar('TUNINGBOX_SETTINGS', silent=True)
     # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
     app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
+    app.register_error_handler(errors.TuningboxIntegrityError,
+                               handle_integrity_error)
+    app.register_error_handler(errors.TuningboxNotFound,
+                               handle_object_not_found)
     db.db.init_app(app)
     if configure_logging:
         log_level = app.config.get('LOG_LEVEL', 'INFO')

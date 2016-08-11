@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 
 from tuning_box import db
 from tuning_box.library import components
@@ -155,6 +156,21 @@ class TestComponents(BaseTest):
                          actual_component['name'])
         self.assertItemsEqual(initial_data['resource_definitions'],
                               actual_component['resource_definitions'])
+
+    def test_put_component_resource_not_found(self):
+        self._fixture()
+        component_url = '/components/7'
+        initial_data = self._component_json
+
+        resource_definition = copy.deepcopy(
+            initial_data['resource_definitions'][0])
+        resource_definition['id'] = None
+
+        res = self.client.put(
+            component_url,
+            data={'resource_definitions': [resource_definition]}
+        )
+        self.assertEqual(404, res.status_code)
 
     def test_put_component_ignore_changing_id(self):
         self._fixture()

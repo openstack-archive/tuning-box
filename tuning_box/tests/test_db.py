@@ -146,7 +146,6 @@ class _RealDBTest(testscenarios.WithScenarios,
                   base.TestCase,
                   test_base.DbTestCase):
     scenarios = [
-        ('sqlite', {'FIXTURE': test_base.DbFixture}),
         # ('mysql', {'FIXTURE': test_base.MySQLOpportunisticFixture}),
         ('postgres', {'FIXTURE': test_base.PostgreSQLOpportunisticFixture}),
     ]

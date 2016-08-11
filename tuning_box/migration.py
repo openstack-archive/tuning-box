@@ -23,7 +23,9 @@ def get_alembic_config(engine):
     config.set_main_option('sqlalchemy.url', str(engine.url))
     config.set_main_option(
         'script_location', tuning_box.get_migrations_dir())
-    config.set_main_option('version_table', 'alembic_version')
+    table_prefix = db.ModelMixin.table_prefix
+    config.set_main_option('table_prefix', table_prefix)
+    config.set_main_option('version_table', table_prefix + 'alembic_version')
     return config
 
 

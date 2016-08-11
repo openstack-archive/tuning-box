@@ -10,17 +10,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-LOG_LEVEL = 'DEBUG'
-PROPAGATE_EXCEPTIONS = True
 
-SQLALCHEMY_DATABASE_URI = \
-    'postgresql://tuningbox:tuningbox@localhost/tuningbox'
+class BaseTuningboxError(Exception):
+    pass
 
-AUTH = {
-    'auth_host': '127.0.0.1',
-    'auth_protocol': 'http',
-    'auth_version': 'v2.0',
-    'admin_user': 'tuningbox',
-    'admin_password': 'tuningbox',
-    'admin_tenant_name': 'services'
-}
+
+class TuningboxIntegrityError(BaseTuningboxError):
+    pass
+
+
+class TuningboxNotFound(BaseTuningboxError):
+    pass

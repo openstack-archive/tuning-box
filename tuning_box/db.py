@@ -41,7 +41,9 @@ def with_transaction(f):
 
 
 def fk(cls, **kwargs):
-    return db.Column(pk_type, db.ForeignKey(cls.id), **kwargs)
+    ondelete = kwargs.pop('ondelete', None)
+    return db.Column(pk_type, db.ForeignKey(cls.id, ondelete=ondelete),
+                     **kwargs)
 
 
 class BaseQuery(flask_sqlalchemy.BaseQuery):
@@ -121,7 +123,7 @@ class Component(ModelMixin, db.Model):
 
 class ResourceDefinition(ModelMixin, db.Model):
     name = db.Column(db.String(128))
-    component_id = fk(Component)
+    component_id = fk(Component, ondelete='CASCADE')
     component = db.relationship(Component, backref='resource_definitions')
     content = db.Column(Json)
 
@@ -135,8 +137,10 @@ class Environment(ModelMixin, db.Model):
     def environment_components_table(cls):
         return db.Table(
             _tablename('environment_components'),
-            db.Column('environment_id', pk_type, db.ForeignKey(cls.id)),
-            db.Column('component_id', pk_type, db.ForeignKey(Component.id)),
+            db.Column('environment_id', pk_type,
+                      db.ForeignKey(cls.id, ondelete='CASCADE')),
+            db.Column('component_id', pk_type,
+                      db.ForeignKey(Component.id, ondelete='CASCADE')),
         )
 
     @sa_decl.declared_attr
@@ -198,11 +202,11 @@ class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
 
 
 class ResourceValues(ModelMixin, db.Model):
-    environment_id = fk(Environment)
+    environment_id = fk(Environment, ondelete='CASCADE')
     environment = db.relationship(Environment)
-    resource_definition_id = fk(ResourceDefinition)
+    resource_definition_id = fk(ResourceDefinition, ondelete='CASCADE')
     resource_definition = db.relationship(ResourceDefinition)
-    level_value_id = fk(EnvironmentHierarchyLevelValue)
+    level_value_id = fk(EnvironmentHierarchyLevelValue, ondelete='CASCADE')
     level_value = db.relationship('EnvironmentHierarchyLevelValue')
     values = db.Column(Json, server_default='{}')
     overrides = db.Column(Json, server_default='{}')

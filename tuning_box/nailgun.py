@@ -67,7 +67,8 @@ class App2WebPy(web.application):
 
 class TB2WebPy(App2WebPy):
     def create_app(self):
-        app = tb_app.build_app()
+        # Nailgun API already contains keystone middleware
+        app = tb_app.build_app(with_keystone=False)
         tb_db.prefix_tables(tb_db, Extension.table_prefix())
         app.config["PROPAGATE_EXCEPTIONS"] = True
         app.config["SQLALCHEMY_DATABASE_URI"] = nailgun_sa.db_str

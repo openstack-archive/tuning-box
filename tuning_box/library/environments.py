@@ -13,10 +13,10 @@
 import flask
 import flask_restful
 from flask_restful import fields
-from sqlalchemy import exc as sa_exc
 
 from tuning_box import db
 from tuning_box import errors
+from tuning_box import library
 
 environment_fields = {
     'id': fields.Integer,
@@ -74,34 +74,34 @@ class Environment(flask_restful.Resource):
     def get(self, environment_id):
         return db.Environment.query.get_or_404(environment_id)
 
-    # @db.with_transaction
-    # def _perform_update(self, component_id):
-    #     component = db.Environment.query.get_or_404(component_id)
-    #     update_by = flask.request.json
-    #     component.name = update_by.get('name', component.name)
-    #     resource_definitions = update_by.get('resource_definitions')
-    #     if resource_definitions is not None:
-    #         resources = []
-    #         for resource_data in resource_definitions:
-    #             resource = db.ResourceDefinition.query.filter_by(
-    #                 id=resource_data.get('id')
-    #             ).one()
-    #             resource.component_id = component.id
-    #             db.db.session.add(resource)
-    #             resources.append(resource)
-    #         component.resource_definitions = resources
-    #
-    # def put(self, component_id):
-    #     return self.patch(component_id)
-    #
-    # def patch(self, component_id):
-    #     self._perform_update(component_id)
-    #     return None, 204
+    def _update_components(self, environment, components):
+        if components is not None:
+            new_components = library.load_objects_by_id_or_name(
+                db.Component, components)
+            environment.components = new_components
+
+    def _update_hierarchy_levels(self, environment, hierarchy_levels):
+        if hierarchy_levels is not None:
+            new_hierarchy_levels = library.load_objects_by_id_or_name(
+                db.EnvironmentHierarchyLevel, hierarchy_levels)
+            environment.hierarchy_levels = new_hierarchy_levels
 
     @db.with_transaction
-    def delete(self, component_id):
-        component = db.Component.query.get_or_404(component_id)
-        db.db.session.delete(component)
+    def _perform_update(self, environment_id):
+        environment = db.Environment.query.get_or_404(environment_id)
+        update_by = flask.request.json
+
+        components = update_by.get('components')
+        self._update_components(environment, components)
+
+        hierarchy_levels = update_by.get('hierarchy_levels')
+        self._update_hierarchy_levels(environment, hierarchy_levels)
+
+    def put(self, environment_id):
+        return self.patch(environment_id)
+
+    def patch(self, env_id):
+        self._perform_update(env_id)
         return None, 204
 
     @db.with_transaction

@@ -11,6 +11,7 @@
 # under the License.
 
 LOG_LEVEL = 'DEBUG'
+PROPAGATE_EXCEPTIONS = True
 
 SQLALCHEMY_DATABASE_URI = \
     'postgresql://tuningbox:tuningbox@localhost/tuningbox'

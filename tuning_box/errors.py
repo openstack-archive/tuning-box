@@ -17,3 +17,7 @@ class BaseTuningboxError(Exception):
 
 class TuningboxIntegrityError(BaseTuningboxError):
     pass
+
+
+class TuningboxNotFound(BaseTuningboxError):
+    pass

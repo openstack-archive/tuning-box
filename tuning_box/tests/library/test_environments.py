@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
 from tuning_box import db
 from tuning_box.library import environments
 from tuning_box.tests.test_app import BaseTest
@@ -142,3 +141,67 @@ class TestEnvironments(BaseTest):
     def test_delete_environment_404(self):
         res = self.client.delete('/environments/9')
         self.assertEqual(res.status_code, 404)
+
+    def test_put_environment_404(self):
+        res = self.client.put('/environments/7')
+        self.assertEqual(res.status_code, 404)
+
+    def test_put_environment_components(self):
+        self._fixture()
+        environment_url = '/environment/9'
+        initial = self.client.get(environment_url).json
+
+        # Updating components
+        res = self.client.put(environment_url,
+                              data={'components': []})
+        self.assertEqual(204, res.status_code)
+        actual = self.client.get(environment_url).json
+        self.assertEqual([], actual['components'])
+
+        # Restoring components
+        res = self.client.put(
+            environment_url,
+            data={'components': initial['components']}
+        )
+        self.assertEqual(204, res.status_code)
+        actual = self.client.get(environment_url).json
+        self.assertItemsEqual(initial, actual)
+
+    def test_put_environment_component_not_found(self):
+        self._fixture()
+        environment_url = '/environment/9'
+        res = self.client.put(
+            environment_url,
+            data={'components': [None]}
+        )
+        self.assertEqual(404, res.status_code)
+
+    def test_put_environment_hierarchy_levels(self):
+        self._fixture()
+        environment_url = '/environment/9'
+        initial = self.client.get(environment_url).json
+
+        # Updating hierarchy levels
+        res = self.client.put(environment_url,
+                              data={'hierarchy_levels': []})
+        self.assertEqual(204, res.status_code)
+        actual = self.client.get(environment_url).json
+        self.assertEqual([], actual['hierarchy_levels'])
+
+        # Restoring levels
+        res = self.client.put(
+            environment_url,
+            data={'hierarchy_levels': initial['hierarchy_levels']}
+        )
+        self.assertEqual(204, res.status_code)
+        actual = self.client.get(environment_url).json
+        self.assertItemsEqual(initial, actual)
+
+    def test_put_environment_level_not_found(self):
+        self._fixture()
+        environment_url = '/environment/9'
+        res = self.client.put(
+            environment_url,
+            data={'hierarchy_levels': [None]}
+        )
+        self.assertEqual(404, res.status_code)

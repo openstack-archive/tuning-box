@@ -29,15 +29,19 @@ from tuning_box.middleware import keystone
 # These handlers work if PROPAGATE_EXCEPTIONS is off (non-Nailgun case)
 api_errors = {
     'IntegrityError': {'status': 409},  # sqlalchemy IntegrityError
-    'TuningboxIntegrityError': {'status': 409},  # sqlalchemy IntegrityError
+    'TuningboxIntegrityError': {'status': 409},
+    'TuningboxNotFound': {'status': 404}
 }
 api = flask_restful.Api(errors=api_errors)
 
 api.add_resource(components.ComponentsCollection, '/components')
 api.add_resource(components.Component, '/components/<int:component_id>')
 api.add_resource(environments.EnvironmentsCollection, '/environments')
-api.add_resource(environments.Environment,
-                 '/environments/<int:environment_id>')
+api.add_resource(
+    environments.Environment,
+    '/environments/<int:environment_id>',  # Backward compatibility support
+    '/environment/<int:environment_id>'
+)
 
 
 def with_transaction(f):
@@ -206,9 +210,9 @@ def handle_integrity_error(exc):
     return response
 
 
-def handle_integrity_error_(exc):
+def handle_object_not_found(exc):
     response = flask.jsonify(msg=exc.args[0])
-    response.status_code = 409
+    response.status_code = 404
     return response
 
 
@@ -221,7 +225,10 @@ def build_app(configure_logging=True, with_keystone=True):
     app.config.from_envvar('TUNINGBOX_SETTINGS', silent=True)
     # These handlers work if PROPAGATE_EXCEPTIONS is on (Nailgun case)
     app.register_error_handler(sa_exc.IntegrityError, handle_integrity_error)
-    app.register_error_handler(errors.TuningboxIntegrityError, handle_integrity_error_)
+    app.register_error_handler(errors.TuningboxIntegrityError,
+                               handle_integrity_error)
+    app.register_error_handler(errors.TuningboxNotFound,
+                               handle_object_not_found)
     db.db.init_app(app)
     if configure_logging:
         log_level = app.config.get('LOG_LEVEL', 'INFO')

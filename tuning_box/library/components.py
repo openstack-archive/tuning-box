@@ -16,7 +16,7 @@ import flask_restful
 from flask_restful import fields
 
 from tuning_box import db
-
+from tuning_box import library
 
 resource_definition_fields = {
     'id': fields.Integer,
@@ -64,14 +64,8 @@ class Component(flask_restful.Resource):
         component.name = update_by.get('name', component.name)
         resource_definitions = update_by.get('resource_definitions')
         if resource_definitions is not None:
-            resources = []
-            for resource_data in resource_definitions:
-                resource = db.ResourceDefinition.query.filter_by(
-                    id=resource_data.get('id')
-                ).one()
-                resource.component_id = component.id
-                db.db.session.add(resource)
-                resources.append(resource)
+            ids = [data['id'] for data in resource_definitions]
+            resources = library.load_objects(db.ResourceDefinition, ids)
             component.resource_definitions = resources
 
     def put(self, component_id):

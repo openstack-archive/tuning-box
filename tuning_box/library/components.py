@@ -17,19 +17,14 @@ from flask_restful import fields
 
 from tuning_box import db
 from tuning_box import library
-
-resource_definition_fields = {
-    'id': fields.Integer,
-    'name': fields.String,
-    'component_id': fields.Integer,
-    'content': fields.Raw,
-}
+from tuning_box.library import resource_definitions
 
 component_fields = {
     'id': fields.Integer,
     'name': fields.String,
-    'resource_definitions': fields.List(
-        fields.Nested(resource_definition_fields)),
+    'resource_definitions': fields.List(fields.Nested(
+        resource_definitions.resource_definition_fields
+    ))
 }
 
 

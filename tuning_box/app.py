@@ -23,6 +23,7 @@ from tuning_box import db
 from tuning_box import errors
 from tuning_box.library import components
 from tuning_box.library import environments
+from tuning_box.library import resource_definitions
 from tuning_box import logger
 from tuning_box.middleware import keystone
 
@@ -36,6 +37,14 @@ api = flask_restful.Api(errors=api_errors)
 
 api.add_resource(components.ComponentsCollection, '/components')
 api.add_resource(components.Component, '/components/<int:component_id>')
+api.add_resource(
+    resource_definitions.ResourceDefinitionsCollection,
+    '/resource_definitions',
+)
+api.add_resource(
+    resource_definitions.ResourceDefinition,
+    '/resource_definition/<int:resource_definition_id>'
+)
 api.add_resource(environments.EnvironmentsCollection, '/environments')
 api.add_resource(
     environments.Environment,

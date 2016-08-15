@@ -10,6 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from sqlalchemy.orm import exc as sa_exc
+
+from tuning_box import db
 from tuning_box import errors
 
 
@@ -42,3 +45,29 @@ def load_objects_by_id_or_name(model, identifiers):
             )
         result.append(obj)
     return result
+
+
+def get_resource_definition(id_or_name, environment_id):
+    query = db.ResourceDefinition.query.join(db.Component). \
+        join(db.Environment.environment_components_table). \
+        filter_by(environment_id=environment_id)
+
+    if isinstance(id_or_name, int):
+        query = query.filter(db.ResourceDefinition.id == id_or_name)
+    else:
+        query = query.filter(db.ResourceDefinition.name == id_or_name)
+
+    result = query.all()
+
+    if not result:
+        raise errors.TuningboxNotFound(
+            "{0} not found by {1} in environment {2}".format(
+                db.ResourceDefinition.__tablename__,
+                id_or_name,
+                environment_id
+            )
+        )
+    elif len(result) > 1:
+        raise sa_exc.MultipleResultsFound
+
+    return result[0]

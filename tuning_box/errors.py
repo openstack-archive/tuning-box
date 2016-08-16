@@ -21,3 +21,23 @@ class TuningboxIntegrityError(BaseTuningboxError):
 
 class TuningboxNotFound(BaseTuningboxError):
     pass
+
+
+class KeysOperationError(BaseTuningboxError):
+    pass
+
+
+class UnknownKeysOperation(KeysOperationError):
+    pass
+
+
+class KeysPathNotExisted(KeysOperationError):
+    pass
+
+
+class KeysPathInvalid(KeysOperationError):
+    pass
+
+
+class KeysPathUnreachable(KeysOperationError):
+    pass

@@ -19,6 +19,7 @@ class TestResourceDefinitions(BaseTest):
 
     collection_url = '/resource_definitions'
     object_url = '/resource_definition/{0}'
+    object_keys_url = object_url + '/keys/{1}'
 
     @property
     def _resource_json(self):
@@ -150,3 +151,63 @@ class TestResourceDefinitions(BaseTest):
         self.assertEqual(204, res.status_code)
         actual_res_def = self.client.get(self.object_url.format(res_id)).json
         self.assertEqual(self._resource_json, actual_res_def)
+
+    def test_put_resource_definition_set_operation_error(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        res_id = self._resource_json['id']
+
+        data = [['a', 'b', 'c', 'value']]
+        res = self.client.put(self.object_keys_url.format(res_id, 'set'),
+                              data=data)
+        self.assertEqual(409, res.status_code)
+
+    def test_put_resource_definition_set(self):
+        self._fixture()
+        res_id = self._resource_json['id']
+
+        data = [['key', 'key_value'], ['key_x', 'key_x_value']]
+        res = self.client.put(
+            self.object_keys_url.format(res_id, 'set'),
+            data=data
+        )
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(self.object_url.format(res_id))
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key': 'key_value', 'key_x': 'key_x_value'},
+                         actual['content'])
+
+    def test_put_resource_definition_delete(self):
+        self._fixture()
+        res_id = self._resource_json['id']
+
+        data = [['key']]
+        res = self.client.put(
+            self.object_keys_url.format(res_id, 'delete'),
+            data=data
+        )
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(self.object_url.format(res_id))
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({}, actual['content'])
+
+    def test_put_resource_definition_delete_no_key(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        res_id = self._resource_json['id']
+
+        data = [['fake_key']]
+        res = self.client.put(
+            self.object_keys_url.format(res_id, 'delete'),
+            data=data
+        )
+        self.assertEqual(409, res.status_code)
+
+        res = self.client.get(self.object_url.format(res_id))
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual(self._resource_json['content'], actual['content'])

@@ -15,6 +15,8 @@ import itertools
 from werkzeug import routing
 from werkzeug import urls
 
+from tuning_box.library import resource_keys_operation
+
 
 class Levels(routing.BaseConverter):
     """Converter that maps nested levels to list of tuples.
@@ -56,7 +58,20 @@ class IdOrName(routing.BaseConverter):
     def to_url(self, value):
         return super(IdOrName, self).to_url(str(value))
 
+
+class KeysOperation(routing.BaseConverter):
+    """Converter that matches keys operations
+
+    Allowed operations: add, delete, erase
+    """
+
+    regex = '(' + ')|('.join(
+        resource_keys_operation.KeysOperationMixin.OPERATIONS
+    ) + ')'
+
+
 ALL = {
     'levels': Levels,
     'id_or_name': IdOrName,
+    'keys_operation': KeysOperation
 }

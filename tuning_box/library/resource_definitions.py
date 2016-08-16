@@ -10,12 +10,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
 import flask
 import flask_restful
 from flask_restful import fields
 
 from tuning_box import db
+from tuning_box.library import resource_keys_operation
 
 resource_definition_fields = {
     'id': fields.Integer,
@@ -86,4 +86,23 @@ class ResourceDefinition(flask_restful.Resource):
         res_definition = db.ResourceDefinition.query.get_or_404(
             resource_definition_id)
         db.db.session.delete(res_definition)
+        return None, 204
+
+
+class ResourceDefinitionKeys(flask_restful.Resource,
+                             resource_keys_operation.KeysOperationMixin):
+
+    @db.with_transaction
+    def _do_update(self, resource_definition_id, operation):
+        res_definition = db.ResourceDefinition.query.get_or_404(
+            resource_definition_id)
+        result = self.perform_operation(operation, res_definition.content,
+                                        flask.request.json)
+        res_definition.content = result
+
+    def put(self, resource_definition_id, operation):
+        return self.patch(resource_definition_id, operation)
+
+    def patch(self, resource_definition_id, operation):
+        self._do_update(resource_definition_id, operation)
         return None, 204

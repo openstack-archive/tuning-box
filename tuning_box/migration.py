@@ -28,12 +28,12 @@ def get_alembic_config(engine):
 
 
 def upgrade():
-    with app.build_app().app_context():
+    with app.build_app(with_keystone=False).app_context():
         config = get_alembic_config(db.db.engine)
         alembic_command.upgrade(config, 'head')
 
 
 def downgrade():
-    with app.build_app().app_context():
+    with app.build_app(with_keystone=False).app_context():
         config = get_alembic_config(db.db.engine)
         alembic_command.downgrade(config, 'base')

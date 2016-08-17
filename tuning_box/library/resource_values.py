@@ -17,6 +17,7 @@ import itertools
 from tuning_box import db
 from tuning_box import library
 from tuning_box.library import levels_hierarchy
+from tuning_box.library import resource_keys_operation
 
 
 class ResourceValues(flask_restful.Resource):
@@ -94,3 +95,16 @@ class ResourceValues(flask_restful.Resource):
             if not resource_values:
                 return {}
             return resource_values.values
+
+
+class ResourceValuesKeys(flask_restful.Resource,
+                         resource_keys_operation.ResourceKeysMixin):
+
+    def put(self, environment_id, levels, resource_id_or_name, operation):
+        return self.patch(environment_id, levels,
+                          resource_id_or_name, operation)
+
+    def patch(self, environment_id, levels, resource_id_or_name, operation):
+        self._do_update(environment_id, levels, resource_id_or_name,
+                        operation, 'values')
+        return None, 204

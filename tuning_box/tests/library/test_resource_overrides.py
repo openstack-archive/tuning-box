@@ -10,11 +10,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
+
 from tuning_box import db
 from tuning_box.tests.test_app import BaseTest
 
 
 class TestResourceOverrides(BaseTest):
+
+    object_url = '/environments/{0}/{1}/resources/{2}/overrides'
+    object_keys_url = object_url + '/keys/{3}'
 
     def test_put_resource_values_overrides_root(self):
         self._fixture()
@@ -43,17 +48,19 @@ class TestResourceOverrides(BaseTest):
             self.assertIsNotNone(resource_values)
             self.assertEqual(resource_values.overrides, {'k': 'v'})
             level_value = resource_values.level_value
+            self.assertIsNotNone(level_value)
             self.assertEqual(level_value.level.name, 'lvl2')
             self.assertEqual(level_value.value, 'val2')
             level_value = level_value.parent
+            self.assertIsNotNone(level_value)
             self.assertEqual(level_value.level.name, 'lvl1')
             self.assertEqual(level_value.value, 'val1')
             self.assertIsNone(level_value.parent)
 
     def test_get_resource_values_local_override(self):
         self._fixture()
-        res = self.client.put('/environments/9/lvl1/1/resources/5/values',
-                              data={'key': 'value1'})
+        self.client.put('/environments/9/lvl1/1/resources/5/values',
+                        data={'key': 'value1'})
         res = self.client.put('/environments/9/lvl1/1/resources/5/overrides',
                               data={'key': 'value2'})
         self.assertEqual(res.status_code, 204)
@@ -122,3 +129,86 @@ class TestResourceOverrides(BaseTest):
             'http://localhost'
             '/environments/9/lvl1/val1/lvl2/val2/resources/5/overrides',
         )
+
+    def test_put_resource_overrides_set_operation_error(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        overrides = {'key': 'val_overridden'}
+        self._add_resource_overrides(environment_id, res_def_id, levels,
+                                     overrides)
+
+        data = [['a', 'b', 'c', 'value']]
+        obj_keys_url = self.object_keys_url.format(
+            environment_id,
+            '/'.join(itertools.chain.from_iterable(levels)),
+            res_def_id,
+            'set'
+        )
+
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(409, res.status_code)
+
+    def test_put_resource_overrides_set(self):
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        overrides = {'key': 'val_overridden'}
+        self._add_resource_overrides(environment_id, res_def_id, levels,
+                                     overrides)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            '/'.join(itertools.chain.from_iterable(levels)),
+            res_def_id
+        )
+        obj_keys_url = obj_url + '/keys/set'
+
+        data = [['key', 'key_over'], ['key_x', 'key_x_over']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key': 'key_over', 'key_x': 'key_x_over'},
+                         actual)
+
+    def test_put_resource_overrides_delete(self):
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        overrides = {'key_0': 'val_0', 'key_1': 'val_1'}
+        self._add_resource_overrides(environment_id, res_def_id, levels,
+                                     overrides)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            '/'.join(itertools.chain.from_iterable(levels)),
+            res_def_id
+        )
+        obj_keys_url = obj_url + '/keys/delete'
+
+        data = [['key_0']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key_1': 'val_1'}, actual)
+
+        # Checking of not existed key deletion
+        data = [['fake_key']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key_1': 'val_1'}, actual)

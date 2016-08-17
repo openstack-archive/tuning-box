@@ -14,6 +14,7 @@ from sqlalchemy.orm import exc as sa_exc
 
 from tuning_box import db
 from tuning_box import errors
+from tuning_box.library import levels_hierarchy
 
 
 def load_objects(model, ids):
@@ -71,3 +72,31 @@ def get_resource_definition(id_or_name, environment_id):
         raise sa_exc.MultipleResultsFound
 
     return result[0]
+
+
+def get_resource_values(environment, levels, res_def):
+    level_value = levels_hierarchy.get_environment_level_value(
+        environment, levels)
+    res_values = db.ResourceValues.query.filter_by(
+        environment_id=environment.id,
+        resource_definition_id=res_def.id,
+        level_value_id=level_value.id,
+    ).all()
+
+    if not res_values:
+        raise errors.TuningboxNotFound(
+            "Resource values not found by environment {0}, "
+            "resource definition {1}, level {2} with value {3}".format(
+                environment.id, res_def.id, level_value.level.name,
+                level_value.value
+            )
+        )
+    elif len(res_values) > 1:
+        raise errors.TuningboxIntegrityError(
+            "Found more than one resource values for environment {0}, "
+            "resource definition {1}, level {2} with value {3}".format(
+                environment.id, res_def.id, level_value.level.name,
+                level_value.value
+            )
+        )
+    return res_values[0]

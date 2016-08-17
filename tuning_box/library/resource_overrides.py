@@ -16,6 +16,7 @@ import flask_restful
 from tuning_box import db
 from tuning_box import library
 from tuning_box.library import levels_hierarchy
+from tuning_box.library import resource_keys_operation
 
 
 class ResourceOverrides(flask_restful.Resource):
@@ -23,15 +24,15 @@ class ResourceOverrides(flask_restful.Resource):
     @db.with_transaction
     def put(self, environment_id, levels, resource_id_or_name):
         environment = db.Environment.query.get_or_404(environment_id)
-        resdef = library.get_resource_definition(
+        res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
-        if resdef.id != resource_id_or_name:
+        if res_def.id != resource_id_or_name:
             from tuning_box.app import api
             return flask.redirect(api.url_for(
                 ResourceOverrides,
                 environment_id=environment_id,
                 levels=levels,
-                resource_id_or_name=resdef.id,
+                resource_id_or_name=res_def.id,
             ), code=308)
 
         level_value = levels_hierarchy.get_environment_level_value(
@@ -39,7 +40,7 @@ class ResourceOverrides(flask_restful.Resource):
         esv = db.get_or_create(
             db.ResourceValues,
             environment=environment,
-            resource_definition=resdef,
+            resource_definition=res_def,
             level_value=level_value,
         )
         esv.overrides = flask.request.json
@@ -48,25 +49,38 @@ class ResourceOverrides(flask_restful.Resource):
     @db.with_transaction
     def get(self, environment_id, resource_id_or_name, levels):
         environment = db.Environment.query.get_or_404(environment_id)
-        resdef = library.get_resource_definition(
+        res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
-        if resdef.id != resource_id_or_name:
+        if res_def.id != resource_id_or_name:
             from tuning_box.app import api
             url = api.url_for(
                 ResourceOverrides,
                 environment_id=environment_id,
                 levels=levels,
-                resource_id_or_name=resdef.id,
+                resource_id_or_name=res_def.id,
             )
             return flask.redirect(url, code=308)
 
         level_value = levels_hierarchy.get_environment_level_value(
             environment, levels)
         res_values = db.ResourceValues.query.filter_by(
-            resource_definition=resdef,
+            resource_definition=res_def,
             environment=environment,
             level_value=level_value,
         ).one_or_none()
         if not res_values:
             return {}
         return res_values.overrides
+
+
+class ResourceOverridesKeys(flask_restful.Resource,
+                            resource_keys_operation.ResourceKeysMixin):
+
+    def put(self, environment_id, levels, resource_id_or_name, operation):
+        return self.patch(environment_id, levels,
+                          resource_id_or_name, operation)
+
+    def patch(self, environment_id, levels, resource_id_or_name, operation):
+        self._do_update(environment_id, levels, resource_id_or_name,
+                        operation, 'overrides')
+        return None, 204

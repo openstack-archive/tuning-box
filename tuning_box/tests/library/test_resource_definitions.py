@@ -55,7 +55,7 @@ class TestResourceDefinitions(BaseTest):
         res = self.client.get(self.collection_url)
         self.assertEqual(200, res.status_code)
         self.assertEqual(1, len(res.json))
-        self.assertItemsEqual(self._resource_json, res.json[0])
+        self.assertEqual(self._resource_json, res.json[0])
 
     def test_get_definitions_filtration(self):
         self._fixture()
@@ -90,7 +90,7 @@ class TestResourceDefinitions(BaseTest):
         res_id = self._resource_json['id']
         res = self.client.get(self.object_url.format(res_id))
         self.assertEqual(200, res.status_code)
-        self.assertItemsEqual(self._resource_json, res.json)
+        self.assertEqual(self._resource_json, res.json)
 
     def test_get_one_resource_definition_404(self):
         res_id = self._resource_json['id']
@@ -129,7 +129,7 @@ class TestResourceDefinitions(BaseTest):
                               data=data)
         self.assertEqual(204, res.status_code)
         actual_res_def = self.client.get(self.object_url.format(res_id)).json
-        self.assertItemsEqual(data, actual_res_def)
+        self.assertEqual(data, actual_res_def)
 
         # Restoring resource_definition values
         res = self.client.put(
@@ -138,7 +138,7 @@ class TestResourceDefinitions(BaseTest):
         )
         self.assertEqual(204, res.status_code)
         actual_res_def = self.client.get(self.object_url.format(res_id)).json
-        self.assertItemsEqual(self._resource_json, actual_res_def)
+        self.assertEqual(self._resource_json, actual_res_def)
 
     def test_put_resource_definition_ignore_changing_id(self):
         self._fixture()
@@ -149,4 +149,4 @@ class TestResourceDefinitions(BaseTest):
         res = self.client.put(self.object_url.format(res_id), data=data)
         self.assertEqual(204, res.status_code)
         actual_res_def = self.client.get(self.object_url.format(res_id)).json
-        self.assertItemsEqual(self._resource_json, actual_res_def)
+        self.assertEqual(self._resource_json, actual_res_def)

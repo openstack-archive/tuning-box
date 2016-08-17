@@ -78,7 +78,7 @@ class BaseTest(base.TestCase):
             obj = model.query.get(key)
             self.assertIsNotNone(obj)
             marshalled = flask_restful.marshal(obj, fields)
-        self.assertItemsEqual(expected, marshalled)
+        self.assertEqual(expected, marshalled)
 
     def _assert_not_in_db(self, model, key):
         with self.app.app_context():

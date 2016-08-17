@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from tuning_box.app import db
 from tuning_box import errors
 from tuning_box import library
 from tuning_box.tests.test_app import BaseTest
@@ -76,3 +77,31 @@ class TestLibrary(BaseTest):
             self.assertEqual(res_id, actual_res.id)
             self.assertEqual(res_name, actual_res.name)
             self.assertEqual(component_id, actual_res.component_id)
+
+    def test_get_resource_values(self):
+        self._fixture()
+        res_def_id = 5
+        environment_id = 9
+        values = {'k': 'v'}
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        with self.app.app_context(), db.db.session.begin():
+
+            environment = db.Environment.query.get(environment_id)
+            res_def = db.ResourceDefinition.query.get(res_def_id)
+            res_values = library.get_resource_values(
+                environment, levels, res_def)
+            self.assertEqual(values, res_values.values)
+
+    def test_get_resource_values_not_found(self):
+        self._fixture()
+        res_def_id = 5
+        environment_id = 9
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        with self.app.app_context(), db.db.session.begin():
+            environment = db.Environment.query.get(environment_id)
+            res_def = db.ResourceDefinition.query.get(res_def_id)
+            self.assertRaises(errors.TuningboxNotFound,
+                              library.get_resource_values, environment,
+                              levels, res_def)

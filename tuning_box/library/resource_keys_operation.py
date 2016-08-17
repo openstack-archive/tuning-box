@@ -12,7 +12,11 @@
 
 import copy
 
+import flask
+
+from tuning_box import db
 from tuning_box import errors
+from tuning_box import library
 
 
 class KeysOperationMixin(object):
@@ -116,3 +120,28 @@ class KeysOperationMixin(object):
                 "Unknown operation: {0}. "
                 "Allowed operations: {1}".format(operation, self.OPERATIONS)
             )
+
+
+class ResourceKeysMixin(KeysOperationMixin):
+
+    @db.with_transaction
+    def _do_update(self, environment_id, levels,
+                   resource_id_or_name, operation, storage_name):
+
+        environment = db.Environment.query.get_or_404(environment_id)
+        res_def = library.get_resource_definition(
+            resource_id_or_name, environment_id)
+
+        if res_def.id != resource_id_or_name:
+            from tuning_box.app import api
+            return flask.redirect(api.url_for(
+                self.__class__,
+                environment_id=environment_id,
+                levels=levels,
+                resource_id_or_name=res_def.id,
+            ), code=308)
+
+        res_values = library.get_resource_values(environment, levels, res_def)
+        result = self.perform_operation(
+            operation, getattr(res_values, storage_name), flask.request.json)
+        setattr(res_values, storage_name, result)

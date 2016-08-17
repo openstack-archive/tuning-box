@@ -59,12 +59,25 @@ api.add_resource(
     '/environments/<int:environment_id>/<levels:levels>resources/'
     '<id_or_name:resource_id_or_name>/values'
 )
+api.add_resource(
+    resource_values.ResourceValuesKeys,
+    '/environments/<int:environment_id>/<levels:levels>resources/'
+    '<id_or_name:resource_id_or_name>/values/'
+    'keys/<keys_operation:operation>'
+)
 
 # Resource overrides
 api.add_resource(
     resource_overrides.ResourceOverrides,
     '/environments/<int:environment_id>/'
-    '<levels:levels>resources/<id_or_name:resource_id_or_name>/overrides')
+    '<levels:levels>resources/<id_or_name:resource_id_or_name>/overrides'
+)
+api.add_resource(
+    resource_overrides.ResourceOverridesKeys,
+    '/environments/<int:environment_id>/'
+    '<levels:levels>resources/<id_or_name:resource_id_or_name>/overrides/'
+    'keys/<keys_operation:operation>'
+)
 
 # Environments
 api.add_resource(environments.EnvironmentsCollection, '/environments')

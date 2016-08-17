@@ -41,13 +41,13 @@ class TestComponents(BaseTest):
         self._fixture()
         res = self.client.get('/components')
         self.assertEqual(200, res.status_code)
-        self.assertItemsEqual(self._component_json, res.json[0])
+        self.assertEqual(self._component_json, res.json[0])
 
     def test_get_one_component(self):
         self._fixture()
         res = self.client.get('/components/7')
         self.assertEqual(200, res.status_code)
-        self.assertItemsEqual(self._component_json, res.json)
+        self.assertEqual(self._component_json, res.json)
 
     def test_get_one_component_404(self):
         res = self.client.get('/components/7')
@@ -104,7 +104,7 @@ class TestComponents(BaseTest):
         json['resource_definitions'][0]['component_id'] = json['id']
         json['resource_definitions'][0]['id'] = 6
         json['resource_definitions'][0]['content'] = None
-        self.assertItemsEqual(json, res.json)
+        self.assertEqual(json, res.json)
         self._assert_db_effect(db.Component, res.json['id'],
                                components.component_fields, json)
 

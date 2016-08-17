@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
+
 import flask
 import flask_restful
 import itertools
@@ -17,6 +19,7 @@ import itertools
 from tuning_box import db
 from tuning_box import library
 from tuning_box.library import levels_hierarchy
+from tuning_box.library import resource_keys_operation
 
 
 class ResourceValues(flask_restful.Resource):
@@ -94,3 +97,39 @@ class ResourceValues(flask_restful.Resource):
             if not resource_values:
                 return {}
             return resource_values.values
+
+
+class ResourceValuesKeys(flask_restful.Resource,
+                         resource_keys_operation.KeysOperationMixin):
+
+    @db.with_transaction
+    def _do_update(self, environment_id, levels,
+                   resource_id_or_name, operation):
+
+        environment = db.Environment.query.get_or_404(environment_id)
+        res_def = library.get_resource_definition(
+            resource_id_or_name, environment_id)
+
+        if res_def.id != resource_id_or_name:
+            from tuning_box.app import api
+            return flask.redirect(api.url_for(
+                ResourceValuesKeys,
+                environment_id=environment_id,
+                levels=levels,
+                resource_id_or_name=res_def.id,
+            ), code=308)
+
+        res_values = library.get_resource_values(environment, levels, res_def)
+        values = copy.deepcopy(res_values.values)
+        self.perform_operation(operation, values,
+                               flask.request.json)
+        res_values.values = values
+
+    def put(self, environment_id, levels, resource_id_or_name, operation):
+        return self.patch(environment_id, levels,
+                          resource_id_or_name, operation)
+
+    def patch(self, environment_id, levels, resource_id_or_name, operation):
+        self._do_update(environment_id, levels,
+                        resource_id_or_name, operation)
+        return None, 204

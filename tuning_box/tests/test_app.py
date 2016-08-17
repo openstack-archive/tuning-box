@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
 import json
 
 from flask import testing
@@ -71,6 +72,18 @@ class BaseTest(base.TestCase):
             hierarchy_levels[1].parent = hierarchy_levels[0]
             environment.hierarchy_levels = hierarchy_levels
             db.db.session.add(environment)
+
+    def _add_resource_values(self, environment_id, res_def_id,
+                             levels, values):
+        res = self.client.put(
+            '/environments/{0}/{1}/resources/{2}/values'.format(
+                environment_id,
+                '/'.join(itertools.chain.from_iterable(levels)),
+                res_def_id
+            ),
+            data=values
+        )
+        self.assertEqual(res.status_code, 204)
 
     def _assert_db_effect(self, model, key, fields, expected):
         with self.app.app_context():

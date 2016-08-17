@@ -59,6 +59,12 @@ api.add_resource(
     '/environments/<int:environment_id>/<levels:levels>resources/'
     '<id_or_name:resource_id_or_name>/values'
 )
+api.add_resource(
+    resource_values.ResourceValuesKeys,
+    '/environments/<int:environment_id>/<levels:levels>resources/'
+    '<id_or_name:resource_id_or_name>/values/'
+    'keys/<keys_operation:operation>'
+)
 
 # Resource overrides
 api.add_resource(

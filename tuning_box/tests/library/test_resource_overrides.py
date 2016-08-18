@@ -51,11 +51,10 @@ class TestResourceOverrides(BaseTest):
             self.assertIsNotNone(level_value)
             self.assertEqual(level_value.level.name, 'lvl2')
             self.assertEqual(level_value.value, 'val2')
-            level_value = level_value.parent
-            self.assertIsNotNone(level_value)
-            self.assertEqual(level_value.level.name, 'lvl1')
-            self.assertEqual(level_value.value, 'val1')
-            self.assertIsNone(level_value.parent)
+            level = level_value.level.parent
+            self.assertIsNotNone(level)
+            self.assertEqual(level.name, 'lvl1')
+            self.assertIsNone(level.parent)
 
     def test_get_resource_values_local_override(self):
         self._fixture()

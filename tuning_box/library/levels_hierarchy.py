@@ -18,7 +18,6 @@ from tuning_box import db
 def iter_environment_level_values(environment, levels):
     env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
     level_pairs = zip(env_levels, levels)
-    parent_level_value = None
     for env_level, (level_name, level_value) in level_pairs:
         if env_level.name != level_name:
             raise werkzeug.exceptions.BadRequest(
@@ -27,11 +26,9 @@ def iter_environment_level_values(environment, levels):
         level_value_db = db.get_or_create(
             db.EnvironmentHierarchyLevelValue,
             level=env_level,
-            parent=parent_level_value,
             value=level_value,
         )
         yield level_value_db
-        parent_level_value = level_value_db
 
 
 def get_environment_level_value(environment, levels):

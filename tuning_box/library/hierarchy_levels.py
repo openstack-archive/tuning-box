@@ -12,6 +12,10 @@
 
 import werkzeug
 
+import flask
+import flask_restful
+from flask_restful import fields
+
 from tuning_box import db
 
 
@@ -36,3 +40,29 @@ def get_environment_level_value(environment, levels):
     for level_value in iter_environment_level_values(environment, levels):
         pass
     return level_value
+
+
+environment_hierarchy_level = {
+    'id': fields.Integer,
+    'name': fields.String,
+    'environment_id': fields.Integer(default=None),
+    'parent_id': fields.Integer(default=None),
+}
+
+
+class EnvironmentHierarchyLevelsCollection(flask_restful.Resource):
+    method_decorators = [
+        flask_restful.marshal_with(environment_hierarchy_level)
+    ]
+
+    def get(self):
+        query = db.EnvironmentHierarchyLevel.query
+        if 'environment_id' in flask.request.args:
+            environment_id = flask.request.args.get('component_id')
+            environment_id = environment_id or None
+            query = query.filter(
+                db.EnvironmentHierarchyLevel.environment_id == environment_id
+            )
+
+        return query.order_by(db.EnvironmentHierarchyLevel.environment_id,
+                              db.EnvironmentHierarchyLevel.parent_id).all()

@@ -15,7 +15,7 @@ import flask_restful
 
 from tuning_box import db
 from tuning_box import library
-from tuning_box.library import levels_hierarchy
+from tuning_box.library import hierarchy_levels
 from tuning_box.library import resource_keys_operation
 
 
@@ -35,7 +35,7 @@ class ResourceOverrides(flask_restful.Resource):
                 resource_id_or_name=res_def.id,
             ), code=308)
 
-        level_value = levels_hierarchy.get_environment_level_value(
+        level_value = hierarchy_levels.get_environment_level_value(
             environment, levels)
         esv = db.get_or_create(
             db.ResourceValues,
@@ -61,7 +61,7 @@ class ResourceOverrides(flask_restful.Resource):
             )
             return flask.redirect(url, code=308)
 
-        level_value = levels_hierarchy.get_environment_level_value(
+        level_value = hierarchy_levels.get_environment_level_value(
             environment, levels)
         res_values = db.ResourceValues.query.filter_by(
             resource_definition=res_def,

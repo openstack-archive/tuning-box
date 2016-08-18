@@ -50,10 +50,10 @@ class TestResourceValues(BaseTest):
             level_value = resource_values.level_value
             self.assertEqual(level_value.level.name, 'lvl2')
             self.assertEqual(level_value.value, 'val2')
-            level_value = level_value.parent
-            self.assertEqual(level_value.level.name, 'lvl1')
-            self.assertEqual(level_value.value, 'val1')
-            self.assertIsNone(level_value.parent)
+            level = level_value.level.parent
+            self.assertIsNotNone(level)
+            self.assertEqual(level.name, 'lvl1')
+            self.assertIsNone(level.parent)
 
     def test_put_resource_values_bad_level(self):
         self._fixture()

@@ -13,7 +13,7 @@
 import werkzeug
 
 from tuning_box import db
-from tuning_box.library import levels_hierarchy
+from tuning_box.library import hierarchy_levels
 from tuning_box.tests.test_app import BaseTest
 
 
@@ -22,7 +22,7 @@ class TestLevelsHierarchy(BaseTest):
     def test_get_environment_level_value_root(self):
         self._fixture()
         with self.app.app_context(), db.db.session.begin():
-            level_value = levels_hierarchy.get_environment_level_value(
+            level_value = hierarchy_levels.get_environment_level_value(
                 db.Environment(id=9),
                 [],
             )
@@ -31,7 +31,7 @@ class TestLevelsHierarchy(BaseTest):
     def test_get_environment_level_value_deep(self):
         self._fixture()
         with self.app.app_context(), db.db.session.begin():
-            level_value = levels_hierarchy.get_environment_level_value(
+            level_value = hierarchy_levels.get_environment_level_value(
                 db.Environment(id=9),
                 [('lvl1', 'val1'), ('lvl2', 'val2')],
             )
@@ -48,7 +48,7 @@ class TestLevelsHierarchy(BaseTest):
         with self.app.app_context(), db.db.session.begin():
             exc = self.assertRaises(
                 werkzeug.exceptions.BadRequest,
-                levels_hierarchy.get_environment_level_value,
+                hierarchy_levels.get_environment_level_value,
                 db.Environment(id=9),
                 [('lvlx', 'val1')],
             )
@@ -56,3 +56,7 @@ class TestLevelsHierarchy(BaseTest):
                 exc.description,
                 "Unexpected level name 'lvlx'. Expected 'lvl1'.",
             )
+
+    def test_get_hierarchy_levels(self):
+        self._fixture()
+        self.client.get('/hierarchy_levels')

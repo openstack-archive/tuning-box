@@ -144,7 +144,7 @@ def downgrade():
             table_prefix + 'resource_values_environment_id_fkey',
             'foreignkey'
         )
-        op.create_foreign_key(
+        batch.create_foreign_key(
             table_prefix + 'environment_schema_values_environment_id_fkey',
             table_prefix + 'environment',
             ['environment_id'], ['id']

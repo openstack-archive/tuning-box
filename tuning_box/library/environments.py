@@ -29,7 +29,15 @@ class EnvironmentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
     def get(self):
-        return db.Environment.query.all()
+        envs = db.Environment.query.all()
+        result = []
+        for env in envs:
+            hierarchy_levels = db.EnvironmentHierarchyLevel.\
+                get_for_environment(env)
+            # Proper order of levels can't be provided by ORM backref
+            result.append({'id': env.id, 'components': env.components,
+                           'hierarchy_levels': hierarchy_levels})
+        return result, 200
 
     def _check_components(self, components):
         identities = set()
@@ -72,7 +80,12 @@ class Environment(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
     def get(self, environment_id):
-        return db.Environment.query.get_or_404(environment_id)
+        env = db.Environment.query.get_or_404(environment_id)
+        hierarchy_levels = db.EnvironmentHierarchyLevel.\
+            get_for_environment(env)
+        # Proper order of levels can't be provided by ORM backref
+        return {'id': env.id, 'components': env.components,
+                'hierarchy_levels': hierarchy_levels}, 200
 
     def _update_components(self, environment, components):
         if components is not None:
@@ -80,14 +93,29 @@ class Environment(flask_restful.Resource):
                 db.Component, components)
             environment.components = new_components
 
-    def _update_hierarchy_levels(self, environment, hierarchy_levels):
-        if hierarchy_levels is not None:
-            new_hierarchy_levels = library.load_objects_by_id_or_name(
-                db.EnvironmentHierarchyLevel, hierarchy_levels)
-            parent = None
+    def _update_hierarchy_levels(self, environment, hierarchy_levels_names):
+        if hierarchy_levels_names is not None:
+            old_hierarchy_levels = db.EnvironmentHierarchyLevel.query.filter(
+                db.EnvironmentHierarchyLevel.environment_id == environment.id
+            ).all()
+
+            new_hierarchy_levels = []
+
+            for level_name in hierarchy_levels_names:
+                level = db.get_or_create(
+                    db.EnvironmentHierarchyLevel,
+                    name=level_name,
+                    environment=environment
+                )
+                new_hierarchy_levels.append(level)
+
+            parent_id = None
             for level in new_hierarchy_levels:
-                level.parent = parent
-                parent = level
+                level.parent_id = parent_id
+                parent_id = level.id
+            for old_level in old_hierarchy_levels:
+                if old_level not in new_hierarchy_levels:
+                    db.db.session.delete(old_level)
             environment.hierarchy_levels = new_hierarchy_levels
 
     @db.with_transaction

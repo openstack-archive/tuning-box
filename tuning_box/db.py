@@ -16,10 +16,13 @@ import re
 
 import flask
 import flask_sqlalchemy
+import sqlalchemy
 import sqlalchemy.event
 import sqlalchemy.ext.declarative as sa_decl
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import types
+
+from tuning_box import errors
 
 try:
     from importlib import reload
@@ -152,8 +155,12 @@ class Environment(ModelMixin, db.Model):
 
 
 class EnvironmentHierarchyLevel(ModelMixin, db.Model):
-    environment_id = fk(Environment)
-    environment = db.relationship(Environment, backref='hierarchy_levels')
+    environment_id = fk(Environment, ondelete='CASCADE')
+    environment = db.relationship(
+        Environment,
+        backref=sqlalchemy.orm.backref('hierarchy_levels',
+                                       cascade="all, delete-orphan")
+    )
     name = db.Column(db.String(128))
 
     @sa_decl.declared_attr
@@ -245,3 +252,21 @@ def prefix_tables(module, prefix):
 def unprefix_tables(module):
     ModelMixin.table_prefix = ""
     reload(module)
+
+
+def get_or_404(cls, ident):
+    result = cls.query.get(ident)
+    if result is None:
+        raise errors.TuningboxNotFound(
+            "{0} not found by {1}".format(cls.__name__, ident)
+        )
+    return result
+
+
+def find_or_404(cls, **attrs):
+    item = cls.query.filter_by(**attrs).one_or_none()
+    if not item:
+        raise errors.TuningboxNotFound(
+            "{0} not found by {1}".format(cls.__name__, attrs)
+        )
+    return item

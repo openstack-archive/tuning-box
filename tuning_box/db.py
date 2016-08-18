@@ -189,16 +189,11 @@ class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
     level = db.relationship(EnvironmentHierarchyLevel)
     value = db.Column(db.String(128))
 
-    @sa_decl.declared_attr
-    def parent_id(cls):
-        return db.Column(pk_type, db.ForeignKey(cls.id))
+    __table_args__ = (
+        db.UniqueConstraint('level_id', 'value'),
+    )
 
-    @sa_decl.declared_attr
-    def parent(cls):
-        return db.relationship(cls, remote_side=cls.id)
-
-    # TODO(yorik-sar): add UniqueConstraint for all fields
-    __repr_attrs__ = ('id', 'level', 'parent', 'value')
+    __repr_attrs__ = ('id', 'level', 'value')
 
 
 class ResourceValues(ModelMixin, db.Model):

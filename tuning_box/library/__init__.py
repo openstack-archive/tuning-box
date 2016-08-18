@@ -14,7 +14,7 @@ from sqlalchemy.orm import exc as sa_exc
 
 from tuning_box import db
 from tuning_box import errors
-from tuning_box.library import levels_hierarchy
+from tuning_box.library import hierarchy_levels
 
 
 def load_objects(model, ids):
@@ -75,7 +75,7 @@ def get_resource_definition(id_or_name, environment_id):
 
 
 def get_resource_values(environment, levels, res_def):
-    level_value = levels_hierarchy.get_environment_level_value(
+    level_value = hierarchy_levels.get_environment_level_value(
         environment, levels)
     res_values = db.ResourceValues.query.filter_by(
         environment_id=environment.id,

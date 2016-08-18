@@ -166,10 +166,23 @@ class TestEnvironments(BaseTest):
     def test_delete_environment(self):
         self._fixture()
         env_id = 9
-        res = self.client.delete(self.object_url.format(env_id))
-        self.assertEqual(res.status_code, 204)
+        env_url = self.object_url.format(env_id)
+        res = self.client.get(env_url)
+        self.assertEqual(200, res.status_code)
+        levels = ['lvl1', 'lvl2']
+        self.assertEqual(levels, res.json['hierarchy_levels'])
+
+        res = self.client.delete(env_url)
+        self.assertEqual(204, res.status_code)
         self.assertEqual(res.data, b'')
         self._assert_not_in_db(db.Environment, 9)
+
+        with self.app.app_context():
+            for name in levels:
+                obj = db.EnvironmentHierarchyLevel.query.filter(
+                    db.EnvironmentHierarchyLevel.name == name
+                ).first()
+                self.assertIsNone(obj)
 
     def test_delete_environment_404(self):
         env_id = 9
@@ -260,11 +273,42 @@ class TestEnvironments(BaseTest):
         self.assertEqual(expected_levels, actual['hierarchy_levels'])
         self.check_hierarchy_levels(actual['hierarchy_levels'])
 
-    def test_put_environment_level_not_found(self):
+    def test_put_environment_hierarchy_levels_reverse(self):
         self._fixture()
         env_id = 9
+        env_url = self.object_url.format(env_id)
+        initial = self.client.get(env_url).json
+        expected_levels = initial['hierarchy_levels']
+        expected_levels.reverse()
+
+        # Updating hierarchy levels
         res = self.client.put(
-            self.object_url.format(env_id),
-            data={'hierarchy_levels': [None]}
+            env_url,
+            data={'hierarchy_levels': expected_levels}
         )
-        self.assertEqual(404, res.status_code)
+        self.assertEqual(204, res.status_code)
+        actual = self.client.get(env_url).json
+        self.assertEqual(expected_levels, actual['hierarchy_levels'])
+        self.check_hierarchy_levels(actual['hierarchy_levels'])
+
+    def test_put_environment_hierarchy_levels_with_new_level(self):
+        self._fixture()
+        env_id = 9
+        env_url = self.object_url.format(env_id)
+        initial = self.client.get(env_url).json
+        expected_levels = ['root'] + initial['hierarchy_levels']
+
+        res = self.client.put(
+            env_url,
+            data={'hierarchy_levels': expected_levels}
+        )
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get('/environments/9/hierarchy_levels')
+        self.assertEqual(200, res.status_code)
+
+        res = self.client.get(env_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual(expected_levels, actual['hierarchy_levels'])
+        self.check_hierarchy_levels(actual['hierarchy_levels'])

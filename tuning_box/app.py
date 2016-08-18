@@ -19,6 +19,7 @@ from tuning_box import db
 from tuning_box import errors
 from tuning_box.library import components
 from tuning_box.library import environments
+from tuning_box.library import hierarchy_levels
 from tuning_box.library import resource_definitions
 from tuning_box.library import resource_overrides
 from tuning_box.library import resource_values
@@ -84,6 +85,17 @@ api.add_resource(environments.EnvironmentsCollection, '/environments')
 api.add_resource(
     environments.Environment,
     '/environments/<int:environment_id>'
+)
+
+# Hierarchy levels
+api.add_resource(
+    hierarchy_levels.EnvironmentHierarchyLevelsCollection,
+    '/environments/<int:environment_id>/hierarchy_levels'
+)
+api.add_resource(
+    hierarchy_levels.EnvironmentHierarchyLevels,
+    '/environments/<int:environment_id>/hierarchy_levels/'
+    '<string:level>'
 )
 
 

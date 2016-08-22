@@ -11,13 +11,72 @@
 # under the License.
 
 import json
-
 import yaml
 
 from tuning_box.cli import base
+from tuning_box.cli.base import BaseCommand
+from tuning_box.cli.base import level_converter
 
 
-class Set(base.ResourceCommand):
+class ResourcesCommand(BaseCommand):
+    def get_parser(self, *args, **kwargs):
+        parser = super(ResourcesCommand, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            '--env',
+            type=int,
+            required=True,
+            help="ID of environment to get data from",
+        )
+        parser.add_argument(
+            '--level',
+            type=level_converter,
+            default=[],
+            help=("Level to get data from. Should be in format "
+                  "parent_level=parent1,level=value2"),
+        )
+        parser.add_argument(
+            '--resource',
+            type=str,
+            required=True,
+            help="Name or ID of resource to get data from",
+        )
+        return parser
+
+    def get_resource_url(self, parsed_args, last_part='values'):
+        return '/environments/{}/{}resources/{}/{}'.format(
+            parsed_args.env,
+            ''.join('{}/{}/'.format(*e) for e in parsed_args.level),
+            parsed_args.resource,
+            last_part,
+        )
+
+
+class Get(base.FormattedCommand, ResourcesCommand):
+    def get_parser(self, *args, **kwargs):
+        parser = super(Get, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            '--key',
+            type=str,
+            help="Name of key to get from the resource",
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        res = self.get_client().get(
+            self.get_resource_url(parsed_args),
+            params='effective',
+        )
+        key = parsed_args.key
+        if key is None:
+            return res
+        value = res[key]
+        if parsed_args.format != 'plain':
+            return {key: value}
+        else:
+            return value
+
+
+class Set(ResourcesCommand):
     url_last_part = 'values'
 
     def get_parser(self, *args, **kwargs):
@@ -35,7 +94,7 @@ class Set(base.ResourceCommand):
         parser.add_argument(
             '--type',
             choices=('null', 'int', 'str', 'json', 'yaml', 'bool'),
-            help="Tyep of value passed in --value",
+            help="Type of value passed in --value",
         )
         parser.add_argument(
             '--format',

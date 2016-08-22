@@ -45,11 +45,11 @@ api.add_resource(
 )
 api.add_resource(
     resource_definitions.ResourceDefinition,
-    '/resource_definition/<int:resource_definition_id>'
+    '/resource_definitions/<int:resource_definition_id>'
 )
 api.add_resource(
     resource_definitions.ResourceDefinitionKeys,
-    '/resource_definition/<int:resource_definition_id>/'
+    '/resource_definitions/<int:resource_definition_id>/'
     'keys/<keys_operation:operation>'
 )
 
@@ -83,8 +83,7 @@ api.add_resource(
 api.add_resource(environments.EnvironmentsCollection, '/environments')
 api.add_resource(
     environments.Environment,
-    '/environments/<int:environment_id>',  # Backward compatibility support
-    '/environment/<int:environment_id>'
+    '/environments/<int:environment_id>'
 )
 
 

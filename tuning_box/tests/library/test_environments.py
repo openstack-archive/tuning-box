@@ -18,14 +18,17 @@ from tuning_box.tests.test_app import BaseTest
 
 class TestEnvironments(BaseTest):
 
+    collection_url = '/environments'
+    object_url = collection_url + '/{0}'
+
     def test_get_environments_empty(self):
-        res = self.client.get('/environments')
+        res = self.client.get(self.collection_url)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, [])
 
     def test_get_environments(self):
         self._fixture()
-        res = self.client.get('/environments')
+        res = self.client.get(self.collection_url)
         self.assertEqual(200, res.status_code)
         self.assertEqual(1, len(res.json))
         self.assertEqual(
@@ -35,7 +38,8 @@ class TestEnvironments(BaseTest):
 
     def test_get_one_environment(self):
         self._fixture()
-        res = self.client.get('/environments/9')
+        env_id = 9
+        res = self.client.get(self.object_url.format(env_id))
         self.assertEqual(200, res.status_code)
         self.assertEqual(
             {'id': 9, 'components': [7], 'hierarchy_levels': ['lvl1', 'lvl2']},
@@ -43,13 +47,14 @@ class TestEnvironments(BaseTest):
         )
 
     def test_get_one_environment_404(self):
-        res = self.client.get('/environments/9')
+        env_id = 9
+        res = self.client.get(self.object_url.format(env_id))
         self.assertEqual(res.status_code, 404)
 
     def test_post_environment(self):
         self._fixture()
         json = {'components': [7], 'hierarchy_levels': ['lvla', 'lvlb']}
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(res.status_code, 201)
         json['id'] = res.json['id']
         self.assertEqual(json, res.json)
@@ -64,7 +69,7 @@ class TestEnvironments(BaseTest):
             'components': [7],
             'hierarchy_levels': ['lvla', 'lvlb'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(201, res.status_code)
         self.assertEqual(json, res.json)
         self._assert_db_effect(
@@ -77,7 +82,7 @@ class TestEnvironments(BaseTest):
             'components': [7],
             'hierarchy_levels': ['lvla', 'lvlb'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(res.status_code, 409)
 
     def test_post_environment_preserve_id_conflict_propagate_exc(self):
@@ -88,7 +93,7 @@ class TestEnvironments(BaseTest):
             'components': [7],
             'hierarchy_levels': ['lvla', 'lvlb'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(res.status_code, 409)
 
     def test_post_environment_by_component_name(self):
@@ -97,7 +102,7 @@ class TestEnvironments(BaseTest):
             'components': ['component1'],
             'hierarchy_levels': ['lvla', 'lvlb'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(res.status_code, 201)
         json['id'] = res.json['id']
         json['components'] = [7]
@@ -112,7 +117,7 @@ class TestEnvironments(BaseTest):
             'components': ['component1', 7],
             'hierarchy_levels': ['lvl'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(409, res.status_code)
 
     def test_post_components_no_duplication(self):
@@ -138,13 +143,13 @@ class TestEnvironments(BaseTest):
             'components': [component['id'], new_component['name']],
             'hierarchy_levels': ['lvl'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(201, res.status_code)
 
     def test_post_environment_404(self):
         self._fixture()
         json = {'components': [8], 'hierarchy_levels': ['lvla', 'lvlb']}
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(res.status_code, 404)
         self._assert_not_in_db(db.Environment, 10)
 
@@ -154,28 +159,31 @@ class TestEnvironments(BaseTest):
             'components': ['component2'],
             'hierarchy_levels': ['lvla', 'lvlb'],
         }
-        res = self.client.post('/environments', data=json)
+        res = self.client.post(self.collection_url, data=json)
         self.assertEqual(res.status_code, 404)
         self._assert_not_in_db(db.Environment, 10)
 
     def test_delete_environment(self):
         self._fixture()
-        res = self.client.delete('/environments/9')
+        env_id = 9
+        res = self.client.delete(self.object_url.format(env_id))
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         self._assert_not_in_db(db.Environment, 9)
 
     def test_delete_environment_404(self):
-        res = self.client.delete('/environments/9')
+        env_id = 9
+        res = self.client.delete(self.object_url.format(env_id))
         self.assertEqual(res.status_code, 404)
 
     def test_put_environment_404(self):
-        res = self.client.put('/environments/7')
+        env_id = 7
+        res = self.client.put(self.object_url.format(env_id))
         self.assertEqual(res.status_code, 404)
 
     def test_put_environment_components(self):
         self._fixture()
-        environment_url = '/environment/9'
+        environment_url = '/environments/9'
         initial = self.client.get(environment_url).json
 
         # Updating components
@@ -196,9 +204,9 @@ class TestEnvironments(BaseTest):
 
     def test_put_environment_component_not_found(self):
         self._fixture()
-        environment_url = '/environment/9'
+        env_id = 9
         res = self.client.put(
-            environment_url,
+            self.object_url.format(env_id),
             data={'components': [None]}
         )
         self.assertEqual(404, res.status_code)
@@ -214,7 +222,8 @@ class TestEnvironments(BaseTest):
 
     def test_put_environment_hierarchy_levels(self):
         self._fixture()
-        environment_url = '/environment/9'
+        env_id = 9
+        environment_url = self.object_url.format(env_id)
         initial = self.client.get(environment_url).json
 
         # Updating hierarchy levels
@@ -236,7 +245,8 @@ class TestEnvironments(BaseTest):
 
     def test_put_environment_hierarchy_levels_remove_level(self):
         self._fixture()
-        environment_url = '/environment/9'
+        env_id = 9
+        environment_url = self.object_url.format(env_id)
         initial = self.client.get(environment_url).json
         expected_levels = initial['hierarchy_levels'][1:]
 
@@ -252,9 +262,9 @@ class TestEnvironments(BaseTest):
 
     def test_put_environment_level_not_found(self):
         self._fixture()
-        environment_url = '/environment/9'
+        env_id = 9
         res = self.client.put(
-            environment_url,
+            self.object_url.format(env_id),
             data={'hierarchy_levels': [None]}
         )
         self.assertEqual(404, res.status_code)

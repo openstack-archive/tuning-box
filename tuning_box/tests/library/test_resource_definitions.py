@@ -18,7 +18,7 @@ from tuning_box.tests.test_app import BaseTest
 class TestResourceDefinitions(BaseTest):
 
     collection_url = '/resource_definitions'
-    object_url = '/resource_definition/{0}'
+    object_url = '/resource_definitions/{0}'
     object_keys_url = object_url + '/keys/{1}'
 
     @property

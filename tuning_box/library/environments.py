@@ -29,7 +29,7 @@ class EnvironmentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
     def get(self):
-        envs = db.Environment.query.all()
+        envs = db.Environment.query.order_by(db.Environment.id).all()
         result = []
         for env in envs:
             hierarchy_levels = db.EnvironmentHierarchyLevel.\
@@ -132,8 +132,8 @@ class Environment(flask_restful.Resource):
     def put(self, environment_id):
         return self.patch(environment_id)
 
-    def patch(self, env_id):
-        self._perform_update(env_id)
+    def patch(self, environment_id):
+        self._perform_update(environment_id)
         return None, 204
 
     @db.with_transaction

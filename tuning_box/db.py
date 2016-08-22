@@ -14,7 +14,6 @@ import functools
 import json
 import re
 
-import flask
 import flask_sqlalchemy
 import sqlalchemy
 import sqlalchemy.event
@@ -56,7 +55,9 @@ class BaseQuery(flask_sqlalchemy.BaseQuery):
         else:
             result = self.filter_by(name=id_or_name).one_or_none()
         if fail_on_none and result is None:
-            flask.abort(404)
+            raise errors.TuningboxNotFound(
+                "Object not found by name or id {0}".format(id_or_name)
+            )
         return result
 
     # one_or_none is not present in sqlalchemy < 1.0.9

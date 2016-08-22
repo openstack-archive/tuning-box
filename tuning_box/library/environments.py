@@ -29,7 +29,7 @@ class EnvironmentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
     def get(self):
-        envs = db.Environment.query.all()
+        envs = db.Environment.query.order_by(db.Environment.id).all()
         result = []
         for env in envs:
             hierarchy_levels = db.EnvironmentHierarchyLevel.\

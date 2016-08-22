@@ -32,7 +32,6 @@ class HTTPClient(object):
     def request(self, method, url, **kwargs):
         full_url = self.base_url + url
         resp = self.session.request(method, full_url, **kwargs)
-        resp.raise_for_status()
         if resp.headers.get('Content-Type') == 'application/json' and \
                 resp.content:
             return resp.json()
@@ -44,3 +43,9 @@ class HTTPClient(object):
 
     def put(self, url, body):
         return self.request('PUT', url, json=body)
+
+    def post(self, url, body):
+        return self.request('POST', url, json=body)
+
+    def delete(self, url):
+        return self.request('DELETE', url)

@@ -17,7 +17,8 @@ from fuelclient import client as fc_client
 
 from tuning_box import cli
 from tuning_box.cli import base as cli_base
-import tuning_box.cli.resources
+from tuning_box.cli import environments
+from tuning_box.cli import resources
 from tuning_box import client as tb_client
 
 
@@ -42,15 +43,23 @@ class FuelBaseCommand(cli_base.BaseCommand):
         return FuelHTTPClient()
 
 
-class Get(FuelBaseCommand, tuning_box.cli.resources.Get):
+class Get(FuelBaseCommand, resources.Get):
     pass
 
 
-class Set(FuelBaseCommand, tuning_box.cli.resources.Set):
+class Set(FuelBaseCommand, resources.Set):
     pass
 
 
-class Override(FuelBaseCommand, tuning_box.cli.resources.Override):
+class Override(FuelBaseCommand, resources.Override):
+    pass
+
+
+class CreateEnvironment(FuelBaseCommand, environments.CreateEnvironment):
+    pass
+
+
+class ListEnvironments(FuelBaseCommand, environments.ListEnvironments):
     pass
 
 

@@ -14,6 +14,7 @@ import json
 import yaml
 
 from cliff import command
+import six
 
 
 def level_converter(value):
@@ -53,8 +54,14 @@ def format_output(output, format_):
 
 
 class BaseCommand(command.Command):
+
     def get_client(self):
         return self.app.client
+
+    def _parse_comma_separated(self, parsed_args, param_name):
+        param = getattr(parsed_args, param_name, '')
+        return list(six.moves.map(six.text_type.strip,
+                                  six.text_type(param).split(',')))
 
 
 class FormattedCommand(BaseCommand):

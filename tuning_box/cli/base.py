@@ -11,9 +11,9 @@
 # under the License.
 
 import json
+import yaml
 
 from cliff import command
-import yaml
 
 
 def level_converter(value):
@@ -74,36 +74,3 @@ class FormattedCommand(BaseCommand):
         res = self.take_action(parsed_args)
         self.app.stdout.write(format_output(res, parsed_args.format))
         return 0
-
-
-class ResourceCommand(BaseCommand):
-    def get_parser(self, *args, **kwargs):
-        parser = super(ResourceCommand, self).get_parser(*args, **kwargs)
-        parser.add_argument(
-            '--env',
-            type=int,
-            required=True,
-            help="ID of environment to get data from",
-        )
-        parser.add_argument(
-            '--level',
-            type=level_converter,
-            default=[],
-            help=("Level to get data from. Should be in format "
-                  "parent_level=parent1,level=value2"),
-        )
-        parser.add_argument(
-            '--resource',
-            type=str,
-            required=True,
-            help="Name or ID of resource to get data from",
-        )
-        return parser
-
-    def get_resource_url(self, parsed_args, last_part='values'):
-        return '/environments/{}/{}resources/{}/{}'.format(
-            parsed_args.env,
-            ''.join('{}/{}/'.format(*e) for e in parsed_args.level),
-            parsed_args.resource,
-            last_part,
-        )

@@ -177,6 +177,27 @@ class TestResourceOverrides(BaseTest):
         self.assertEqual({'key': 'key_over', 'key_x': 'key_x_over'},
                          actual)
 
+    def test_put_resource_overrides_set_no_levels(self):
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        values = {'key': 'val'}
+        self._add_resource_overrides(environment_id, res_def_id, (), values)
+
+        obj_url = '/environments/{0}/resources/{1}/overrides'.format(
+            environment_id, res_def_id)
+        obj_keys_url = obj_url + '/keys/set'
+
+        data = [['key', 'key_value'], ['key_x', 'key_x_value']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key': 'key_value', 'key_x': 'key_x_value'},
+                         actual)
+
     def test_put_resource_overrides_delete(self):
         self._fixture()
         environment_id = 9

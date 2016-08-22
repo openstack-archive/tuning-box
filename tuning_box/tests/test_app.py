@@ -73,12 +73,18 @@ class BaseTest(base.TestCase):
             environment.hierarchy_levels = hierarchy_levels
             db.db.session.add(environment)
 
+    def _levels_to_url(self, levels):
+        levels_url = '/'.join(itertools.chain.from_iterable(levels))
+        if levels_url:
+            levels_url += '/'
+        return levels_url
+
     def _add_resource_values(self, environment_id, res_def_id,
                              levels, values):
         res = self.client.put(
-            '/environments/{0}/{1}/resources/{2}/values'.format(
+            '/environments/{0}/{1}resources/{2}/values'.format(
                 environment_id,
-                '/'.join(itertools.chain.from_iterable(levels)),
+                self._levels_to_url(levels),
                 res_def_id
             ),
             data=values
@@ -88,9 +94,9 @@ class BaseTest(base.TestCase):
     def _add_resource_overrides(self, environment_id, res_def_id,
                                 levels, overrides):
         res = self.client.put(
-            '/environments/{0}/{1}/resources/{2}/overrides'.format(
+            '/environments/{0}/{1}resources/{2}/overrides'.format(
                 environment_id,
-                '/'.join(itertools.chain.from_iterable(levels)),
+                self._levels_to_url(levels),
                 res_def_id
             ),
             data=overrides

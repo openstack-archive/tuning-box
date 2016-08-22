@@ -80,7 +80,7 @@ def get_resource_values(environment, levels, res_def):
     res_values = db.ResourceValues.query.filter_by(
         environment_id=environment.id,
         resource_definition_id=res_def.id,
-        level_value_id=level_value.id,
+        level_value=level_value,
     ).all()
 
     if not res_values:

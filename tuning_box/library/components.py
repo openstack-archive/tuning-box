@@ -38,10 +38,10 @@ class ComponentsCollection(flask_restful.Resource):
     def post(self):
         component = db.Component(name=flask.request.json['name'])
         component.resource_definitions = []
-        for resdef_data in flask.request.json.get('resource_definitions'):
-            resdef = db.ResourceDefinition(name=resdef_data['name'],
-                                           content=resdef_data.get('content'))
-            component.resource_definitions.append(resdef)
+        for res_def_data in flask.request.json.get('resource_definitions'):
+            res_def = db.ResourceDefinition(
+                name=res_def_data['name'], content=res_def_data.get('content'))
+            component.resource_definitions.append(res_def)
         db.db.session.add(component)
         return component, 201
 
@@ -57,9 +57,9 @@ class Component(flask_restful.Resource):
         component = db.Component.query.get_or_404(component_id)
         update_by = flask.request.json
         component.name = update_by.get('name', component.name)
-        resource_definitions = update_by.get('resource_definitions')
-        if resource_definitions is not None:
-            ids = [data['id'] for data in resource_definitions]
+        res_definitions = update_by.get('resource_definitions')
+        if res_definitions is not None:
+            ids = [data['id'] for data in res_definitions]
             resources = library.load_objects(db.ResourceDefinition, ids)
             component.resource_definitions = resources
 

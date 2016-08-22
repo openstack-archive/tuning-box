@@ -25,16 +25,16 @@ class ResourceValues(flask_restful.Resource):
     @db.with_transaction
     def put(self, environment_id, levels, resource_id_or_name):
         environment = db.Environment.query.get_or_404(environment_id)
-        resdef = library.get_resource_definition(
+        res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
 
-        if resdef.id != resource_id_or_name:
+        if res_def.id != resource_id_or_name:
             from tuning_box.app import api
             return flask.redirect(api.url_for(
                 ResourceValues,
                 environment_id=environment_id,
                 levels=levels,
-                resource_id_or_name=resdef.id,
+                resource_id_or_name=res_def.id,
             ), code=308)
 
         level_value = levels_hierarchy.get_environment_level_value(
@@ -42,7 +42,7 @@ class ResourceValues(flask_restful.Resource):
         esv = db.get_or_create(
             db.ResourceValues,
             environment=environment,
-            resource_definition=resdef,
+            resource_definition=res_def,
             level_value=level_value,
         )
         esv.values = flask.request.json
@@ -51,15 +51,15 @@ class ResourceValues(flask_restful.Resource):
     @db.with_transaction
     def get(self, environment_id, resource_id_or_name, levels):
         environment = db.Environment.query.get_or_404(environment_id)
-        resdef = library.get_resource_definition(
+        res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
-        if resdef.id != resource_id_or_name:
+        if res_def.id != resource_id_or_name:
             from tuning_box.app import api
             url = api.url_for(
                 ResourceValues,
                 environment_id=environment_id,
                 levels=levels,
-                resource_id_or_name=resdef.id,
+                resource_id_or_name=res_def.id,
             )
             if flask.request.query_string:
                 qs = flask.request.query_string.decode('utf-8')
@@ -71,7 +71,7 @@ class ResourceValues(flask_restful.Resource):
 
         if 'effective' in flask.request.args:
             resource_values = db.ResourceValues.query.filter_by(
-                resource_definition=resdef,
+                resource_definition=res_def,
                 environment=environment,
             ).all()
             result = {}
@@ -88,7 +88,7 @@ class ResourceValues(flask_restful.Resource):
             else:
                 level_value = level_values[-1]
             resource_values = db.ResourceValues.query.filter_by(
-                resource_definition=resdef,
+                resource_definition=res_def,
                 environment=environment,
                 level_value=level_value,
             ).one_or_none()

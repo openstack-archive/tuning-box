@@ -115,6 +115,10 @@ class TestComponents(BaseTest):
         self.assertEqual(res.data, b'')
         self._assert_not_in_db(db.Component, 7)
 
+        with self.app.app_context():
+            actual_res_defs = db.ResourceDefinition.query.all()
+            self.assertEqual([], actual_res_defs)
+
     def test_delete_component_404(self):
         res = self.client.delete('/components/7')
         self.assertEqual(res.status_code, 404)
@@ -145,17 +149,29 @@ class TestComponents(BaseTest):
         self.assertEqual([], actual_component['resource_definitions'])
 
         # Restoring resource_definitions and name
+        res_def = {
+            'name': 'resdef1',
+            'component_id': 7,
+            'content': {'key': 'nsname.key'}
+        }
+        res = self.client.post(
+            '/resource_definitions',
+            data=res_def
+        )
+        self.assertEqual(201, res.status_code)
+
         res = self.client.put(
             component_url,
-            data={'name': initial_data['name'],
-                  'resource_definitions': initial_data['resource_definitions']}
+            data={'name': initial_data['name']}
         )
         self.assertEqual(204, res.status_code)
         actual_component = self.client.get(component_url).json
         self.assertEqual(initial_data['name'],
                          actual_component['name'])
-        self.assertItemsEqual(initial_data['resource_definitions'],
-                              actual_component['resource_definitions'])
+        self.assertItemsEqual(
+            (d['name'] for d in initial_data['resource_definitions']),
+            (d['name'] for d in actual_component['resource_definitions'])
+        )
 
     def test_put_component_resource_not_found(self):
         self._fixture()

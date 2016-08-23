@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import abc
 import json
 import yaml
 
@@ -65,6 +66,44 @@ class BaseCommand(command.Command):
         result = six.moves.map(six.text_type.strip,
                                six.text_type(param).split(','))
         return list(six.moves.map(cast_to, result))
+
+
+class BaseOneCommand(BaseCommand):
+
+    @abc.abstractproperty
+    def base_url(self):
+        """Base url for request operations"""
+
+    @abc.abstractproperty
+    def entity_name(self):
+        """Name of the TuningBox entity"""
+
+    def get_parser(self, *args, **kwargs):
+        parser = super(BaseOneCommand, self).get_parser(*args, **kwargs)
+        parser.add_argument(
+            'id',
+            type=int,
+            help='Id of the {0} to delete.'.format(self.entity_name))
+        return parser
+
+    def get_url(self, parsed_args):
+        return '{0}/{1}'.format(self.base_url, parsed_args.id)
+
+    def get_deletion_message(self, parsed_args):
+        return '{0} with id {1} was deleted'.format(
+            self.entity_name.capitalize(), parsed_args.id)
+
+    def get_update_message(self, parsed_args):
+        return '{0} with id {1} was updated'.format(
+            self.entity_name.capitalize(), parsed_args.id)
+
+
+class BaseDeleteCommand(BaseOneCommand):
+    """Deletes entity with the specified id."""
+
+    def take_action(self, parsed_args):
+        self.get_client().delete(self.get_url(parsed_args))
+        return self.get_deletion_message(parsed_args)
 
 
 class FormattedCommand(BaseCommand):

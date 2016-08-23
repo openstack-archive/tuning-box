@@ -32,13 +32,13 @@ class ComponentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(component_fields)]
 
     def get(self):
-        return db.Component.query.all()
+        return db.Component.query.order_by(db.Component.id).all()
 
     @db.with_transaction
     def post(self):
         component = db.Component(name=flask.request.json['name'])
         component.resource_definitions = []
-        for res_def_data in flask.request.json.get('resource_definitions'):
+        for res_def_data in flask.request.json.get('resource_definitions', []):
             res_def = db.ResourceDefinition(
                 name=res_def_data['name'], content=res_def_data.get('content'))
             component.resource_definitions.append(res_def)

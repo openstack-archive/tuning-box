@@ -17,6 +17,7 @@ from fuelclient import client as fc_client
 
 from tuning_box import cli
 from tuning_box.cli import base as cli_base
+from tuning_box.cli import components
 from tuning_box.cli import environments
 from tuning_box.cli import resources
 from tuning_box import client as tb_client
@@ -72,6 +73,26 @@ class DeleteEnvironment(FuelBaseCommand, environments.DeleteEnvironment):
 
 
 class UpdateEnvironment(FuelBaseCommand, environments.UpdateEnvironment):
+    pass
+
+
+class CreateComponent(FuelBaseCommand, components.CreateComponent):
+    pass
+
+
+class ListComponents(FuelBaseCommand, components.ListComponents):
+    pass
+
+
+class ShowComponent(FuelBaseCommand, components.ShowComponent):
+    pass
+
+
+class DeleteComponent(FuelBaseCommand, components.DeleteComponent):
+    pass
+
+
+class UpdateComponent(FuelBaseCommand, components.UpdateComponent):
     pass
 
 

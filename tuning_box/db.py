@@ -128,7 +128,12 @@ class Component(ModelMixin, db.Model):
 class ResourceDefinition(ModelMixin, db.Model):
     name = db.Column(db.String(128))
     component_id = fk(Component, ondelete='CASCADE')
-    component = db.relationship(Component, backref='resource_definitions')
+    component = db.relationship(
+        Component,
+        backref=sqlalchemy.orm.backref('resource_definitions',
+                                       cascade='all, delete-orphan')
+    )
+
     content = db.Column(Json)
 
     __repr_attrs__ = ('id', 'name', 'component', 'content')

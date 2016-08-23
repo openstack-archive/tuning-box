@@ -32,13 +32,13 @@ class ComponentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(component_fields)]
 
     def get(self):
-        return db.Component.query.all()
+        return db.Component.query.order_by(db.Component.id).all()
 
     @db.with_transaction
     def post(self):
         component = db.Component(name=flask.request.json['name'])
         component.resource_definitions = []
-        for res_def_data in flask.request.json.get('resource_definitions'):
+        for res_def_data in flask.request.json.get('resource_definitions', []):
             res_def = db.ResourceDefinition(
                 name=res_def_data['name'], content=res_def_data.get('content'))
             component.resource_definitions.append(res_def)
@@ -50,11 +50,11 @@ class Component(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(component_fields)]
 
     def get(self, component_id):
-        return db.Component.query.get_or_404(component_id)
+        return db.get_or_404(db.Component, component_id)
 
     @db.with_transaction
     def _perform_update(self, component_id):
-        component = db.Component.query.get_or_404(component_id)
+        component = db.get_or_404(db.Component, component_id)
         update_by = flask.request.json
         component.name = update_by.get('name', component.name)
         res_definitions = update_by.get('resource_definitions')
@@ -72,6 +72,6 @@ class Component(flask_restful.Resource):
 
     @db.with_transaction
     def delete(self, component_id):
-        component = db.Component.query.get_or_404(component_id)
+        component = db.get_or_404(db.Component, component_id)
         db.db.session.delete(component)
         return None, 204

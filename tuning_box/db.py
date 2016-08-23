@@ -128,7 +128,12 @@ class Component(ModelMixin, db.Model):
 class ResourceDefinition(ModelMixin, db.Model):
     name = db.Column(db.String(128))
     component_id = fk(Component, ondelete='CASCADE')
-    component = db.relationship(Component, backref='resource_definitions')
+    component = db.relationship(
+        Component,
+        backref=sqlalchemy.orm.backref('resource_definitions',
+                                       cascade='all, delete-orphan')
+    )
+
     content = db.Column(Json)
 
     __repr_attrs__ = ('id', 'name', 'component', 'content')
@@ -259,7 +264,7 @@ def get_or_404(cls, ident):
     result = cls.query.get(ident)
     if result is None:
         raise errors.TuningboxNotFound(
-            "{0} not found by {1}".format(cls.__name__, ident)
+            "{0} not found by id {1}".format(cls.__name__, ident)
         )
     return result
 

@@ -83,10 +83,11 @@ class SafeTuningBoxApp(cli.TuningBoxApp):
 
     def run(self, argv):
         try:
-            exit_code = super(SafeTuningBoxApp, self).run(argv)
+            super(SafeTuningBoxApp, self).run(argv)
         except SystemExit as e:
+            # We should check exit code only if system exit was called.
             exit_code = e.code
-        assert exit_code == 0
+            assert exit_code == 0
 
 
 class _BaseCLITest(base.TestCase):

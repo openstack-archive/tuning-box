@@ -106,11 +106,11 @@ class BaseOneCommand(BaseCommand):
         return '{0}/{1}'.format(self.base_url, parsed_args.id)
 
     def get_deletion_message(self, parsed_args):
-        return '{0} with id {1} was deleted'.format(
+        return '{0} with id {1} was deleted\n'.format(
             self.entity_name.capitalize(), parsed_args.id)
 
     def get_update_message(self, parsed_args):
-        return '{0} with id {1} was updated'.format(
+        return '{0} with id {1} was updated\n'.format(
             self.entity_name.capitalize(), parsed_args.id)
 
 

@@ -20,32 +20,18 @@ class TestCreateEnvironment(testscenarios.WithScenarios, _BaseCLITest):
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
             ('json', ('/environments',
-                      'env create --levels lvl1 --components 1 --format json',
-                      '{}')),
+                      'env create -l lvl1 -i 1 -f json',
+                      '{\n  "a": "b"\n}')),
             ('yaml', ('/environments',
-                      'env create --levels lvl1,lvl2 --components 1  '
-                      '--format yaml',
-                      '{}\n')),
-            ('plain', ('/environments',
-                       'env create --levels lvl1,lvl2 --components 1,2,3  '
-                       '--format plain',
-                       '{}')),
-            ('plain', ('/environments',
-                       'env create '
-                       '--format plain',
-                       '{}')),
-            ('json', ('/environments',
-                      'env create -l lvl1 -c 1 -f json',
-                      '{}')),
-            ('yaml', ('/environments',
-                      'env create -l lvl1,lvl2 -c 1  -f yaml',
-                      '{}\n')),
-            ('plain', ('/environments',
-                       'env create -l lvl1,lvl2 -c 1,2,3  -f plain',
-                       '{}')),
-            ('plain', ('/environments',
-                       'env create -f plain',
-                       '{}'))
+                      'env create -l lvl1,lvl2 -i 1  -f yaml',
+                      'a: b\n')),
+            ('multi', ('/environments',
+                       'env create -l lvl1,lvl2 -i 1,2,3  -f yaml',
+                       'a: b\n')),
+            ('no_data', ('/environments',
+                         'env create -f yaml',
+                         'a: b\n'))
+
         ]
     ]
 
@@ -57,7 +43,7 @@ class TestCreateEnvironment(testscenarios.WithScenarios, _BaseCLITest):
         self.req_mock.post(
             self.BASE_URL + self.mock_url,
             headers={'Content-Type': 'application/json'},
-            json={},
+            json={'a': 'b'},
         )
         self.cli.run(self.args.split())
         self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
@@ -68,9 +54,8 @@ class TestListEnvironments(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('json', ('/environments', 'env list', '{}')),
-            ('yaml', ('/environments', 'env list --format yaml', '{}\n')),
-            ('plain', ('/environments', 'env list --format plain', '{}'))
+            ('json', ('/environments', 'env list -f json', '[]')),
+            ('yaml', ('/environments', 'env list -f yaml', '[]\n'))
         ]
     ]
     mock_url = None
@@ -92,9 +77,9 @@ class TestShowEnvironment(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('json', ('/environments/9', 'env show 9 --format json', '{}')),
-            ('yaml', ('/environments/9', 'env show 9 --format yaml', '{}\n')),
-            ('plain', ('/environments/9', 'env show 9 --format plain', '{}'))
+            ('json', ('/environments/9', 'env show 9 -f json',
+                      '{\n  "id": 1\n}')),
+            ('yaml', ('/environments/9', 'env show 9 -f yaml', 'id: 1\n'))
         ]
     ]
     mock_url = None
@@ -105,7 +90,7 @@ class TestShowEnvironment(testscenarios.WithScenarios, _BaseCLITest):
         self.req_mock.get(
             self.BASE_URL + self.mock_url,
             headers={'Content-Type': 'application/json'},
-            json={},
+            json={'id': 1},
         )
         self.cli.run(self.args.split())
         self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
@@ -116,12 +101,8 @@ class TestDeleteEnvironment(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('json', ('/environments/9', 'env delete 9 --format json',
-                      '{}')),
-            ('yaml', ('/environments/9', 'env delete 9 --format yaml',
-                      '{}\n')),
-            ('plain', ('/environments/9', 'env delete 9 --format plain',
-                       '{}'))
+            ('json', ('/environments/9', 'env delete 9',
+                      'Environment with id 9 was deleted\n'))
         ]
     ]
     mock_url = None
@@ -131,8 +112,7 @@ class TestDeleteEnvironment(testscenarios.WithScenarios, _BaseCLITest):
     def test_delete(self):
         self.req_mock.delete(
             self.BASE_URL + self.mock_url,
-            headers={'Content-Type': 'application/json'},
-            json={}
+            headers={'Content-Type': 'application/json'}
         )
         self.cli.run(self.args.split())
         self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
@@ -143,33 +123,19 @@ class TestUpdateEnvironment(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('json', ('/environments/9',
-                      'env update 9 -f json',
-                      '{}')),
-            ('json', ('/environments/9',
-                      'env update 9 -l lvl1 -f json',
-                      '{}')),
-            ('yaml', ('/environments/9',
-                      'env update 9 -l lvl1,lvl2 -f yaml',
-                      '{}\n')),
-            ('plain', ('/environments/9',
-                       'env update 9 -l lvl1,lvl2 -c 1 -f plain',
-                       '{}')),
-            ('json', ('/environments/9',
-                      'env update 9 -l lvl1,lvl2 -c 1,2 -f json',
-                      '{}')),
-            ('json', ('/environments/9',
-                      'env update 9 -l [] -c 1,2 -f json',
-                      '{}')),
-            ('json', ('/environments/9',
-                      'env update 9 -l [] -c [] -f json',
-                      '{}')),
-            ('json', ('/environments/9',
-                      'env update 9 --levels [] --components [] --format json',
-                      '{}')),
-            ('json', ('/environments/9',
-                      'env update 9 --levels a,b --components 1,2',
-                      '{}')),
+            ('no_data', ('/environments/9', 'env update 9', '{}')),
+            ('level', ('/environments/9', 'env update 9 -l lvl1', '{}')),
+            ('levels', ('/environments/9',
+                        'env update 9 -l lvl1,lvl2',
+                        '{}')),
+            ('component', ('/environments/9',
+                           'env update 9 -l lvl1,lvl2 -i 1',
+                           '{}')),
+            ('components', ('/environments/9',
+                            'env update 9 -l lvl1,lvl2 -i 1,2',
+                            '{}')),
+            ('erase', ('/environments/9', 'env update 9 -l [] -i 1,2', '{}')),
+            ('erase', ('/environments/9', 'env update 9 -l [] -i []', '{}')),
         ]
     ]
     mock_url = None

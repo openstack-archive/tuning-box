@@ -80,7 +80,7 @@ class Environment(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
     def get(self, environment_id):
-        env = db.Environment.query.get_or_404(environment_id)
+        env = db.get_or_404(db.Environment, environment_id)
         hierarchy_levels = db.EnvironmentHierarchyLevel.\
             get_for_environment(env)
         # Proper order of levels can't be provided by ORM backref
@@ -120,7 +120,7 @@ class Environment(flask_restful.Resource):
 
     @db.with_transaction
     def _perform_update(self, environment_id):
-        environment = db.Environment.query.get_or_404(environment_id)
+        environment = db.get_or_404(db.Environment, environment_id)
         update_by = flask.request.json
 
         components = update_by.get('components')
@@ -138,6 +138,6 @@ class Environment(flask_restful.Resource):
 
     @db.with_transaction
     def delete(self, environment_id):
-        environment = db.Environment.query.get_or_404(environment_id)
+        environment = db.get_or_404(db.Environment, environment_id)
         db.db.session.delete(environment)
         return None, 204

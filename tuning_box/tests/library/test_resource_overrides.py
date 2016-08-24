@@ -246,3 +246,46 @@ class TestResourceOverrides(BaseTest):
         data = [['key_0', 'val_0']]
         res = self.client.put(obj_keys_url, data=data)
         self.assertEqual(409, res.status_code)
+
+    def test_get_resource_overrides_effective_with_lookup(self):
+        self._fixture()
+        res = self.client.put('/environments/9/resources/5/values',
+                              data={'key0': 'root_value_0',
+                                    'key1': 'root_value_1',
+                                    'key2': 'root_value_2',
+                                    'key3': 'root_value_3'})
+        self.assertEqual(res.status_code, 204)
+        res = self.client.put('/environments/9/lvl1/1/resources/5/values',
+                              data={'key0': 'lvl1_value_0'})
+        self.assertEqual(res.status_code, 204)
+
+        # Override key0 on level1
+        res = self.client.put('/environments/9/lvl1/1/resources/5/overrides',
+                              data={'key0': 'lvl1_overrides_0'})
+        self.assertEqual(res.status_code, 204)
+
+        # Override key1 on level1/level2
+        res = self.client.put(
+            '/environments/9/lvl1/1/lvl2/2/resources/5/values',
+            data={'key1': 'lvl2_value_1', 'key2': 'lvl2_value_2'}
+        )
+        self.assertEqual(res.status_code, 204)
+        res = self.client.put(
+            '/environments/9/lvl1/1/lvl2/2/resources/5/overrides',
+            data={'key1': 'lvl2_overrides_1'}
+        )
+        self.assertEqual(res.status_code, 204)
+
+        # Checking lookup info
+        res = self.client.get(
+            '/environments/9/lvl1/1/lvl2/2/resources/5/values?'
+            'effective&show_lookup',
+        )
+        self.assertEqual(res.status_code, 200)
+        expected = {
+            'key0': ['lvl1_overrides_0', '/lvl1/1/'],
+            'key1': ['lvl2_overrides_1', '/lvl1/1/lvl2/2/'],
+            'key2': ['lvl2_value_2', '/lvl1/1/lvl2/2/'],
+            'key3': ['root_value_3', '/']
+        }
+        self.assertEqual(expected, res.json)

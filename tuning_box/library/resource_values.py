@@ -70,16 +70,35 @@ class ResourceValues(flask_restful.Resource):
             environment, levels))
 
         if 'effective' in flask.request.args:
+            show_lookup = 'show_lookup' in flask.request.args
             resource_values = db.ResourceValues.query.filter_by(
                 resource_definition=res_def,
                 environment=environment,
             ).all()
             result = {}
+            lookup_path = ''
             for level_value in itertools.chain([None], level_values):
+                if level_value is not None:
+                    name = level_value.level.name
+                    value = level_value.value
+                    lookup_path += name + '/' + value + '/'
+                else:
+                    lookup_path += '/'
+
                 for resource_value in resource_values:
                     if resource_value.level_value == level_value:
-                        result.update(resource_value.values)
-                        result.update(resource_value.overrides)
+                        if show_lookup:
+                            values = {}
+                            for k, v in resource_value.values.items():
+                                values[k] = (v, lookup_path)
+                            overrides = {}
+                            for k, v in resource_value.overrides.items():
+                                overrides[k] = (v, lookup_path)
+                        else:
+                            values = resource_value.values
+                            overrides = resource_value.overrides
+                        result.update(values)
+                        result.update(overrides)
                         break
             return result
         else:

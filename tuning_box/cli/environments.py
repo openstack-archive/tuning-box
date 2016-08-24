@@ -10,25 +10,37 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from cliff import show
 import six
 
 from tuning_box.cli import base
-from tuning_box.cli.base import BaseCommand
 
 
-class ListEnvironments(base.FormattedCommand, BaseCommand):
+class EnvironmentsCommand(base.BaseCommand):
+    entity_name = 'environment'
+    base_url = '/environments'
+    columns = ('id', 'components', 'hierarchy_levels')
 
-    def take_action(self, parsed_args):
-        return self.get_client().get('/environments')
+
+class ListEnvironments(EnvironmentsCommand, base.BaseListCommand):
+    pass
 
 
-class CreateEnvironment(base.FormattedCommand, BaseCommand):
+class ShowEnvironment(EnvironmentsCommand, base.BaseShowCommand):
+    pass
+
+
+class DeleteEnvironment(EnvironmentsCommand, base.BaseDeleteCommand):
+    pass
+
+
+class CreateEnvironment(EnvironmentsCommand, show.ShowOne):
 
     def get_parser(self, *args, **kwargs):
         parser = super(CreateEnvironment, self).get_parser(
             *args, **kwargs)
         parser.add_argument(
-            '-c', '--components',
+            '-i', '--components',
             type=str,
             help="Comma separated components IDs",
         )
@@ -44,42 +56,21 @@ class CreateEnvironment(base.FormattedCommand, BaseCommand):
             parsed_args, 'levels', six.text_type)
         components = self._parse_comma_separated(
             parsed_args, 'components', int)
-        res = self.get_client().post(
-            '/environments',
+
+        result = self.get_client().post(
+            self.base_url,
             {'hierarchy_levels': levels, 'components': components}
         )
-        return res
+        return zip(*result.items())
 
 
-class EnvironmentCommand(base.FormattedCommand, BaseCommand):
-
-    def get_parser(self, *args, **kwargs):
-        parser = super(EnvironmentCommand, self).get_parser(*args, **kwargs)
-        parser.add_argument('id', type=int, help='Id of the environment')
-        return parser
-
-
-class ShowEnvironment(EnvironmentCommand):
-
-    def take_action(self, parsed_args):
-        return self.get_client().get('/environments/{0}'.format(
-            parsed_args.id))
-
-
-class DeleteEnvironment(EnvironmentCommand):
-
-    def take_action(self, parsed_args):
-        return self.get_client().delete('/environments/{0}'.format(
-            parsed_args.id))
-
-
-class UpdateEnvironment(EnvironmentCommand):
+class UpdateEnvironment(EnvironmentsCommand, base.BaseOneCommand):
 
     def get_parser(self, *args, **kwargs):
         parser = super(UpdateEnvironment, self).get_parser(
             *args, **kwargs)
         parser.add_argument(
-            '-c', '--components',
+            '-i', '--components',
             dest='components',
             type=str,
             help="Comma separated components IDs. "
@@ -103,7 +94,7 @@ class UpdateEnvironment(EnvironmentCommand):
             data['components'] = self._parse_comma_separated(
                 parsed_args, 'components', int)
 
-        return self.get_client().patch(
-            '/environments/{0}'.format(parsed_args.id),
-            data
-        )
+        result = self.get_client().patch(self.get_url(parsed_args), data)
+        if result is None:
+            result = self.get_update_message(parsed_args)
+        self.app.stdout.write(six.text_type(result))

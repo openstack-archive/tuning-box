@@ -104,7 +104,7 @@ class TestDeleteComponent(testscenarios.WithScenarios, _BaseCLITest):
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
             ('', ('/resource_definitions/9', 'def delete 9',
-                  'Resource_definition with id 9 was deleted')),
+                  'Resource_definition with id 9 was deleted\n')),
         ]
     ]
     mock_url = None

@@ -11,6 +11,7 @@
 # under the License.
 
 from cliff import show
+import six
 
 from tuning_box.cli import base
 
@@ -82,5 +83,7 @@ class UpdateComponent(ComponentsCommand, base.BaseOneCommand):
             for res_def_id in res_def_ids:
                 data['resource_definitions'].append({'id': res_def_id})
 
-        self.get_client().patch(self.get_url(parsed_args), data)
-        return self.get_update_message(parsed_args)
+        result = self.get_client().patch(self.get_url(parsed_args), data)
+        if result is None:
+            result = self.get_update_message(parsed_args)
+        self.app.stdout.write(six.text_type(result))

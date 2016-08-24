@@ -93,7 +93,8 @@ class TestDeleteComponent(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('', ('/components/9', 'comp delete 9', '')),
+            ('', ('/components/9', 'comp delete 9',
+                  'Component with id 9 was deleted')),
         ]
     ]
     mock_url = None
@@ -114,20 +115,20 @@ class TestUpdateComponent(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('no_data', ('/components/9', 'comp update 9', '')),
+            ('no_data', ('/components/9', 'comp update 9', '{}')),
             ('s_name', ('/components/9',
-                        'comp update 9 -n comp_name', '')),
+                        'comp update 9 -n comp_name', '{}')),
             ('l_name', ('/components/9',
-                        'comp update 9 --name comp_name', '')),
+                        'comp update 9 --name comp_name', '{}')),
             ('s_r_defs', ('/components/9',
-                          'comp update 9 -r 1,2 ', '')),
+                          'comp update 9 -r 1,2 ', '{}')),
             ('l_r_ders', ('/components/9',
-                          'comp update 9 --resource-definitions 1,2', '')),
+                          'comp update 9 --resource-definitions 1,2', '{}')),
             ('empty_s_r_defs', ('/components/9',
-                                'comp update 9 -r [] -n comp_name', '')),
+                                'comp update 9 -r [] -n comp_name', '{}')),
             ('empty_l_r_defs', ('/components/9',
                                 'comp update 9 --resource-definitions []',
-                                ''))
+                                '{}'))
         ]
     ]
     mock_url = None

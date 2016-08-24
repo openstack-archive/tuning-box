@@ -55,12 +55,12 @@ class ResourceDefinition(flask_restful.Resource):
         flask_restful.marshal_with(resource_definition_fields)]
 
     def get(self, resource_definition_id):
-        return db.ResourceDefinition.query.get_or_404(resource_definition_id)
+        return db.get_or_404(db.ResourceDefinition, resource_definition_id)
 
     @db.with_transaction
     def _perform_update(self, resource_definition_id):
-        res_definition = db.ResourceDefinition.query.get_or_404(
-            resource_definition_id)
+        res_definition = db.get_or_404(
+            db.ResourceDefinition, resource_definition_id)
         update_by = flask.request.json
         skip_fields = ('id', )
 
@@ -83,8 +83,8 @@ class ResourceDefinition(flask_restful.Resource):
 
     @db.with_transaction
     def delete(self, resource_definition_id):
-        res_definition = db.ResourceDefinition.query.get_or_404(
-            resource_definition_id)
+        res_definition = db.get_or_404(
+            db.ResourceDefinition, resource_definition_id)
         db.db.session.delete(res_definition)
         return None, 204
 
@@ -94,8 +94,8 @@ class ResourceDefinitionKeys(flask_restful.Resource,
 
     @db.with_transaction
     def _do_update(self, resource_definition_id, operation):
-        res_definition = db.ResourceDefinition.query.get_or_404(
-            resource_definition_id)
+        res_definition = db.get_or_404(
+            db.ResourceDefinition, resource_definition_id)
         result = self.perform_operation(operation, res_definition.content,
                                         flask.request.json)
         res_definition.content = result

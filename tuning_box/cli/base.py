@@ -118,8 +118,10 @@ class BaseDeleteCommand(BaseOneCommand):
     """Deletes entity with the specified id."""
 
     def take_action(self, parsed_args):
-        self.get_client().delete(self.get_url(parsed_args))
-        return self.get_deletion_message(parsed_args)
+        result = self.get_client().delete(self.get_url(parsed_args))
+        if result is None:
+            result = self.get_deletion_message(parsed_args)
+        self.app.stdout.write(six.text_type(result))
 
 
 class BaseListCommand(BaseCommand, lister.Lister):

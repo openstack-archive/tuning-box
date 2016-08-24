@@ -10,9 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import io
-
 from requests_mock.contrib import fixture as req_fixture
+import six
 import testscenarios
 
 from tuning_box import cli
@@ -66,9 +65,9 @@ class SafeTuningBoxApp(cli.TuningBoxApp):
     @staticmethod
     def get_std_streams():
         if bytes is str:
-            io_cls = io.BytesIO
+            io_cls = six.BytesIO
         else:
-            io_cls = io.StringIO
+            io_cls = six.StringIO
         return {k: io_cls() for k in ('stdin', 'stdout', 'stderr')}
 
     def build_option_parser(self, description, version, argparse_kwargs=None):

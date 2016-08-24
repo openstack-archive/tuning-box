@@ -15,6 +15,10 @@ import json
 import yaml
 
 from cliff import command
+from cliff import lister
+from cliff import show
+from fuelclient.cli import error as fc_error
+from fuelclient.common import data_utils
 import six
 
 
@@ -67,6 +71,18 @@ class BaseCommand(command.Command):
                                six.text_type(param).split(','))
         return list(six.moves.map(cast_to, result))
 
+    def read_json(self):
+        return json.load(self.app.stdin)
+
+    def read_yaml(self):
+        docs_gen = yaml.safe_load_all(self.app.stdin)
+        doc = next(docs_gen)
+        guard = object()
+        if next(docs_gen, guard) is not guard:
+            self.app.stderr.write("Warning: will use only first "
+                                  "document from YAML stream")
+        return doc
+
 
 class BaseOneCommand(BaseCommand):
 
@@ -104,6 +120,28 @@ class BaseDeleteCommand(BaseOneCommand):
     def take_action(self, parsed_args):
         self.get_client().delete(self.get_url(parsed_args))
         return self.get_deletion_message(parsed_args)
+
+
+class BaseListCommand(BaseCommand, lister.Lister):
+
+    def take_action(self, parsed_args):
+        result = self.get_client().get(self.base_url)
+        try:
+            data = data_utils.get_display_data_multi(self.columns, result)
+            return self.columns, data
+        except fc_error.BadDataException:
+            return zip(*result.items())
+
+
+class BaseShowCommand(BaseOneCommand, show.ShowOne):
+
+    def take_action(self, parsed_args):
+        result = self.get_client().get(self.get_url(parsed_args))
+        try:
+            data = data_utils.get_display_data_single(self.columns, result)
+            return self.columns, data
+        except fc_error.BadDataException:
+            return zip(*result.items())
 
 
 class FormattedCommand(BaseCommand):

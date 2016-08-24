@@ -19,6 +19,7 @@ from tuning_box import cli
 from tuning_box.cli import base as cli_base
 from tuning_box.cli import components
 from tuning_box.cli import environments
+from tuning_box.cli import resource_definitions
 from tuning_box.cli import resources
 from tuning_box import client as tb_client
 
@@ -93,6 +94,41 @@ class DeleteComponent(FuelBaseCommand, components.DeleteComponent):
 
 
 class UpdateComponent(FuelBaseCommand, components.UpdateComponent):
+    pass
+
+
+class CreateResourceDefinition(
+    FuelBaseCommand,
+    resource_definitions.CreateResourceDefinition
+):
+    pass
+
+
+class ListResourceDefinitions(
+    FuelBaseCommand,
+    resource_definitions.ListResourceDefintions
+):
+    pass
+
+
+class ShowResourceDefinition(
+    FuelBaseCommand,
+    resource_definitions.ShowResourceDefiniton
+):
+    pass
+
+
+class DeleteResourceDefinition(
+    FuelBaseCommand,
+    resource_definitions.DeleteResourceDefinigion
+):
+    pass
+
+
+class UpdateResourceDefinition(
+    FuelBaseCommand,
+    resource_definitions.UpdateResourceDefinition
+):
     pass
 
 

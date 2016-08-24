@@ -10,10 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from cliff import lister
 from cliff import show
-from fuelclient.cli import error as fc_error
-from fuelclient.common import data_utils
 
 from tuning_box.cli import base
 
@@ -24,15 +21,16 @@ class ComponentsCommand(base.BaseCommand):
     columns = ('id', 'name', 'resource_definitions')
 
 
-class ListComponents(ComponentsCommand, lister.Lister):
+class ListComponents(ComponentsCommand, base.BaseListCommand):
+    pass
 
-    def take_action(self, parsed_args):
-        result = self.get_client().get(self.base_url)
-        try:
-            data = data_utils.get_display_data_multi(self.columns, result)
-            return self.columns, data
-        except fc_error.BadDataException:
-            return zip(*result.items())
+
+class ShowComponent(ComponentsCommand, base.BaseShowCommand):
+    pass
+
+
+class DeleteComponent(ComponentsCommand, base.BaseDeleteCommand):
+    pass
 
 
 class CreateComponent(ComponentsCommand, show.ShowOne):
@@ -49,24 +47,9 @@ class CreateComponent(ComponentsCommand, show.ShowOne):
 
     def take_action(self, parsed_args):
         result = self.get_client().post(
-            '/components', {'name': parsed_args.name,
+            self.base_url, {'name': parsed_args.name,
                             'resource_definitions': []})
         return zip(*result.items())
-
-
-class ShowComponent(ComponentsCommand, base.BaseOneCommand, show.ShowOne):
-
-    def take_action(self, parsed_args):
-        result = self.get_client().get(self.get_url(parsed_args))
-        try:
-            data = data_utils.get_display_data_single(self.columns, result)
-            return self.columns, data
-        except fc_error.BadDataException:
-            return zip(*result.items())
-
-
-class DeleteComponent(ComponentsCommand, base.BaseDeleteCommand):
-    pass
 
 
 class UpdateComponent(ComponentsCommand, base.BaseOneCommand):

@@ -53,7 +53,15 @@ class Set(FuelBaseCommand, resources.Set):
     pass
 
 
+class Delete(FuelBaseCommand, resources.Delete):
+    pass
+
+
 class Override(FuelBaseCommand, resources.Override):
+    pass
+
+
+class DeleteOverride(FuelBaseCommand, resources.DeleteOverride):
     pass
 
 

@@ -50,13 +50,13 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
         for s in [
             ('global,json', (
                 '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1',
-                '{"hello": "world"}',
+                'get --env 1 --resource 1 --format=json',
+                '{\n  "hello": "world"\n}',
             )),
             ('lowlevel,json', (
                 '/environments/1/lvl1/value1/resources/1/values?effective',
-                'get --env 1 --level lvl1=value1 --resource 1',
-                '{"hello": "world"}',
+                'get --env 1 --level lvl1=value1 --resource 1  --format=json',
+                '{\n  "hello": "world"\n}',
             )),
             ('global,yaml', (
                 '/environments/1/resources/1/values?effective',
@@ -68,21 +68,26 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
                 'get --env 1 --level lvl1=value1 --resource 1 --format yaml',
                 'hello: world\n',
             )),
-            ('key,plain', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key hello --format plain',
-                'world',
-            )),
             ('key,json', (
                 '/environments/1/resources/1/values?effective',
                 'get --env 1 --resource 1 --key hello --format json',
-                '{"hello": "world"}',
+                '{\n  "hello": "world"\n}',
             )),
             ('key,yaml', (
                 '/environments/1/resources/1/values?effective',
                 'get --env 1 --resource 1 --key hello --format yaml',
                 'hello: world\n',
             )),
+            ('no_key,json', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key no --format json',
+                '{\n  "no": {}\n}',
+            )),
+            ('no_key,yaml', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key no --format yaml',
+                "'no': {}\n",
+            ))
         ]
     ]
 

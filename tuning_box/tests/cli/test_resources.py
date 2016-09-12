@@ -50,13 +50,13 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
         for s in [
             ('global,json', (
                 '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1',
-                '{"hello": "world"}',
+                'get --env 1 --resource 1 --format=json',
+                '{\n  "hello": "world"\n}',
             )),
             ('lowlevel,json', (
                 '/environments/1/lvl1/value1/resources/1/values?effective',
-                'get --env 1 --level lvl1=value1 --resource 1',
-                '{"hello": "world"}',
+                'get --env 1 --level lvl1=value1 --resource 1  --format=json',
+                '{\n  "hello": "world"\n}',
             )),
             ('global,yaml', (
                 '/environments/1/resources/1/values?effective',
@@ -68,21 +68,26 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
                 'get --env 1 --level lvl1=value1 --resource 1 --format yaml',
                 'hello: world\n',
             )),
-            ('key,plain', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key hello --format plain',
-                'world',
-            )),
             ('key,json', (
                 '/environments/1/resources/1/values?effective',
                 'get --env 1 --resource 1 --key hello --format json',
-                '{"hello": "world"}',
+                '{\n  "hello": "world"\n}',
             )),
             ('key,yaml', (
                 '/environments/1/resources/1/values?effective',
                 'get --env 1 --resource 1 --key hello --format yaml',
                 'hello: world\n',
             )),
+            ('no_key,json', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key no --format json',
+                '{\n  "no": {}\n}',
+            )),
+            ('no_key,yaml', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key no --format yaml',
+                "'no': {}\n",
+            ))
         ]
     ]
 
@@ -147,6 +152,56 @@ class TestSet(testscenarios.WithScenarios, _BaseCLITest):
         self.assertEqual(self.expected_body, req_history[-1].json())
 
 
+class TestDelete(testscenarios.WithScenarios, _BaseCLITest):
+    scenarios = [
+        (s[0],
+         dict(zip(('args', 'expected_body'), s[1])))
+        for s in [
+            ('k1', ('-k k1', "ResourceValue for key k1 was deleted\n")),
+            ('xx', ('-k xx', "ResourceValue for key xx was deleted\n")),
+        ]
+    ]
+
+    args = None
+    expected_body = None
+    url_last_part = 'values'
+    cmd = 'del'
+
+    def test_delete(self):
+        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
+            self.url_last_part + '/keys/delete'
+        self.req_mock.patch(url)
+        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
+                             self.args).split()
+        self.cli.run(args)
+        self.assertEqual(self.expected_body, self.cli.stdout.getvalue())
+
+
 class TestOverride(TestSet):
     url_last_part = 'overrides'
     cmd = 'override'
+
+
+class TestDeleteOverride(testscenarios.WithScenarios, _BaseCLITest):
+    scenarios = [
+        (s[0],
+         dict(zip(('args', 'expected_body'), s[1])))
+        for s in [
+            ('k1', ('-k k1', "ResourceOverride for key k1 was deleted\n")),
+            ('xx', ('-k xx', "ResourceOverride for key xx was deleted\n")),
+        ]
+    ]
+
+    args = None
+    expected_body = None
+    url_last_part = 'overrides'
+    cmd = 'del override'
+
+    def test_delete(self):
+        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
+            self.url_last_part + '/keys/delete'
+        self.req_mock.patch(url)
+        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
+                             self.args).split()
+        self.cli.run(args)
+        self.assertEqual(self.expected_body, self.cli.stdout.getvalue())

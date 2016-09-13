@@ -14,6 +14,7 @@ import json
 import yaml
 
 from cliff import show
+import six
 
 from tuning_box.cli import base
 from tuning_box.cli import errors
@@ -143,5 +144,7 @@ class UpdateResourceDefinition(ModifyResourceDefinitionCommand,
                 or parsed_args.data_format is not None):
             data['content'] = self.get_content(parsed_args)
 
-        self.get_client().patch(self.get_url(parsed_args), data)
-        return self.get_update_message(parsed_args)
+        result = self.get_client().patch(self.get_url(parsed_args), data)
+        if result is None:
+            result = self.get_update_message(parsed_args)
+        self.app.stdout.write(six.text_type(result))

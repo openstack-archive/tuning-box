@@ -103,7 +103,8 @@ class TestDeleteComponent(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('', ('/resource_definitions/9', 'def delete 9', '')),
+            ('', ('/resource_definitions/9', 'def delete 9',
+                  'Resource_definition with id 9 was deleted')),
         ]
     ]
     mock_url = None
@@ -124,12 +125,12 @@ class TestUpdateResourceDefinition(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('args', 'expected_result', 'stdin'), s[1])))
         for s in [
-            ('no_data', ('def update 9', '')),
-            ('name', ('def update 9 -n comp_name', '', False)),
-            ('component_id', ('def update 9 -i 1', '', False)),
-            ('content', ('def update 9 -p "a" -t yaml', '', False)),
-            ('stdin_content', ('def update 9 -d yaml', '', 'a: b')),
-            ('stdin_content', ('def update 9 -d yaml', '', 'a: b')),
+            ('no_data', ('def update 9', '{}')),
+            ('name', ('def update 9 -n comp_name', '{}', False)),
+            ('component_id', ('def update 9 -i 1', '{}', False)),
+            ('content', ('def update 9 -p "a" -t yaml', '{}', False)),
+            ('stdin_content', ('def update 9 -d yaml', '{}', 'a: b')),
+            ('stdin_content', ('def update 9 -d yaml', '{}', 'a: b')),
         ]
     ]
     args = None

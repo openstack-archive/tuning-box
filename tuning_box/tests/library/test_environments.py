@@ -46,6 +46,14 @@ class TestEnvironments(BaseTest):
             res.json
         )
 
+    def test_post_environment_hierarchy_levels_order(self):
+        self._fixture()
+        levels = ['lvla', 'lvlb']
+        data = {'components': [7], 'hierarchy_levels': levels}
+        res = self.client.post(self.collection_url, data=data)
+        self.assertEqual(201, res.status_code)
+        self.assertEqual(levels, res.json['hierarchy_levels'])
+
     def test_get_one_environment_404(self):
         env_id = 9
         res = self.client.get(self.object_url.format(env_id))

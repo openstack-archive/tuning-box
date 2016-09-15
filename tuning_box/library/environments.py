@@ -25,6 +25,13 @@ environment_fields = {
 }
 
 
+def prepare_env_for_output(env):
+    # Proper order of levels can't be provided by ORM backref
+    hierarchy_levels = db.EnvironmentHierarchyLevel.get_for_environment(env)
+    return {'id': env.id, 'components': env.components,
+            'hierarchy_levels': hierarchy_levels}
+
+
 class EnvironmentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
@@ -32,11 +39,7 @@ class EnvironmentsCollection(flask_restful.Resource):
         envs = db.Environment.query.order_by(db.Environment.id).all()
         result = []
         for env in envs:
-            hierarchy_levels = db.EnvironmentHierarchyLevel.\
-                get_for_environment(env)
-            # Proper order of levels can't be provided by ORM backref
-            result.append({'id': env.id, 'components': env.components,
-                           'hierarchy_levels': hierarchy_levels})
+            result.append(prepare_env_for_output(env))
         return result, 200
 
     def _check_components(self, components):
@@ -73,7 +76,7 @@ class EnvironmentsCollection(flask_restful.Resource):
         if 'id' in flask.request.json:
             environment.id = flask.request.json['id']
         db.db.session.add(environment)
-        return environment, 201
+        return prepare_env_for_output(environment), 201
 
 
 class Environment(flask_restful.Resource):
@@ -81,11 +84,7 @@ class Environment(flask_restful.Resource):
 
     def get(self, environment_id):
         env = db.get_or_404(db.Environment, environment_id)
-        hierarchy_levels = db.EnvironmentHierarchyLevel.\
-            get_for_environment(env)
-        # Proper order of levels can't be provided by ORM backref
-        return {'id': env.id, 'components': env.components,
-                'hierarchy_levels': hierarchy_levels}, 200
+        return prepare_env_for_output(env), 200
 
     def _update_components(self, environment, components):
         if components is not None:

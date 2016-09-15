@@ -64,12 +64,21 @@ class Get(show.ShowOne, ResourcesCommand):
             type=str,
             help="Name of key to get from the resource",
         )
+        parser.add_argument(
+            '-s', '--show-lookup',
+            dest='show_lookup',
+            help="Show lookup path for the value in the result",
+            action='store_true'
+        )
         return parser
 
     def take_action(self, parsed_args):
+        params = {'effective': True}
+        if parsed_args.show_lookup:
+            params['show_lookup'] = True
         response = self.get_client().get(
             self.get_resource_url(parsed_args),
-            params='effective',
+            params=params
         )
         key = parsed_args.key
         if key is not None:

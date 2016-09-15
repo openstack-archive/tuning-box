@@ -53,6 +53,11 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
                 'get --env 1 --resource 1 --format=json',
                 '{\n  "hello": "world"\n}',
             )),
+            ('global,lookup', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --format=json --show-lookup',
+                '{\n  "hello": "world"\n}',
+            )),
             ('lowlevel,json', (
                 '/environments/1/lvl1/value1/resources/1/values?effective',
                 'get --env 1 --level lvl1=value1 --resource 1  --format=json',
@@ -71,6 +76,11 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
             ('key,json', (
                 '/environments/1/resources/1/values?effective',
                 'get --env 1 --resource 1 --key hello --format json',
+                '{\n  "hello": "world"\n}',
+            )),
+            ('key,lookup', (
+                '/environments/1/resources/1/values?effective',
+                'get --env 1 --resource 1 --key hello --format json -s',
                 '{\n  "hello": "world"\n}',
             )),
             ('key,yaml', (

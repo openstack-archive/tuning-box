@@ -86,17 +86,15 @@ def get_resource_values(environment, levels, res_def):
     if not res_values:
         raise errors.TuningboxNotFound(
             "Resource values not found by environment {0}, "
-            "resource definition {1}, level {2} with value {3}".format(
-                environment.id, res_def.id, level_value.level.name,
-                level_value.value
+            "resource definition {1} for levels {2}".format(
+                environment.id, res_def.id, levels
             )
         )
     elif len(res_values) > 1:
         raise errors.TuningboxIntegrityError(
             "Found more than one resource values for environment {0}, "
-            "resource definition {1}, level {2} with value {3}".format(
-                environment.id, res_def.id, level_value.level.name,
-                level_value.value
+            "resource definition {1} for levels {2}".format(
+                environment.id, res_def.id, levels
             )
         )
     return res_values[0]

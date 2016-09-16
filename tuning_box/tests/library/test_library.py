@@ -105,3 +105,7 @@ class TestLibrary(BaseTest):
             self.assertRaises(errors.TuningboxNotFound,
                               library.get_resource_values, environment,
                               levels, res_def)
+            # Test for empty levels
+            self.assertRaises(errors.TuningboxNotFound,
+                              library.get_resource_values, environment,
+                              (), res_def)

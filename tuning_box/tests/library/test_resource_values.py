@@ -56,13 +56,14 @@ class TestResourceValues(BaseTest):
             self.assertIsNone(level.parent)
 
     def test_put_resource_values_bad_level(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
         self._fixture()
         res = self.client.put('/environments/9/lvlx/1/resources/5/values',
                               data={'k': 'v'})
-        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.status_code, 404)
         self.assertEqual(
-            res.json,
-            {"message": "Unexpected level name 'lvlx'. Expected 'lvl1'."},
+            {"msg": "Unexpected level name 'lvlx'. Expected 'lvl1'."},
+            res.json
         )
         with self.app.app_context():
             resource_values = db.ResourceValues.query.filter_by(
@@ -190,6 +191,46 @@ class TestResourceValues(BaseTest):
         actual = res.json
         self.assertEqual({'key': 'key_value', 'key_x': 'key_x_value'},
                          actual)
+
+    def test_put_resource_values_levels_mismatch(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        env_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'), ('lvl3', 'val3'))
+        values = {'key': 'val'}
+
+        res = self._add_resource_values(
+            env_id, res_def_id, levels, values, expect_code=404)
+        self.assertEqual(
+            {'msg': "Levels [u'lvl1', u'lvl2', u'lvl3'] can't be matched with "
+                    "environment 9 levels: [u'lvl1', u'lvl2']"},
+            res.json
+        )
+
+    def test_put_resource_values_levels_mismatch_for_empty_levels(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        env_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'), ('lvl3', 'val3'))
+        values = {'key': 'val'}
+
+        env_url = '/environments/{0}'.format(env_id)
+        res = self.client.put(env_url, data={'hierarchy_levels': []})
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(env_url)
+        self.assertEqual(200, res.status_code)
+        self.assertEqual([], res.json['hierarchy_levels'])
+
+        res = self._add_resource_values(
+            env_id, res_def_id, levels, values, expect_code=404)
+        self.assertEqual(
+            {'msg': "Levels [u'lvl1', u'lvl2', u'lvl3'] can't be matched with "
+                    "environment 9 levels: []"},
+            res.json
+        )
 
     def test_put_resource_values_set_no_levels(self):
         self._fixture()

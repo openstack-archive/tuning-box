@@ -80,7 +80,7 @@ class BaseTest(base.TestCase):
         return levels_url
 
     def _add_resource_values(self, environment_id, res_def_id,
-                             levels, values):
+                             levels, values, expect_code=204):
         res = self.client.put(
             '/environments/{0}/{1}resources/{2}/values'.format(
                 environment_id,
@@ -89,7 +89,8 @@ class BaseTest(base.TestCase):
             ),
             data=values
         )
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(expect_code, res.status_code)
+        return res
 
     def _add_resource_overrides(self, environment_id, res_def_id,
                                 levels, overrides):

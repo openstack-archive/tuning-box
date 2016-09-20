@@ -132,15 +132,6 @@ class ResourceKeysMixin(KeysOperationMixin):
         res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
 
-        if res_def.id != resource_id_or_name:
-            from tuning_box.app import api
-            return flask.redirect(api.url_for(
-                self.__class__,
-                environment_id=environment_id,
-                levels=levels,
-                resource_id_or_name=res_def.id,
-            ), code=308)
-
         res_values = library.get_resource_values(environment, levels, res_def)
         result = self.perform_operation(
             operation, getattr(res_values, storage_name), flask.request.json)

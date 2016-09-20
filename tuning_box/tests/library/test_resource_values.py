@@ -18,8 +18,14 @@ from tuning_box.tests.test_app import BaseTest
 
 class TestResourceValues(BaseTest):
 
-    object_url = '/environments/{0}/{1}/resources/{2}/values'
+    object_url = '/environments/{0}/{1}resources/{2}/values'
     object_keys_url = object_url + '/keys/{3}'
+
+    def get_levels_path(self, levels):
+        if levels:
+            return '/'.join(itertools.chain.from_iterable(levels)) + '/'
+        else:
+            return ''
 
     def test_put_resource_values_root(self):
         self._fixture()
@@ -82,59 +88,53 @@ class TestResourceValues(BaseTest):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {})
 
+    def test_get_resource_values_by_name(self):
+        self._fixture()
+        env_id = 9
+        res_name = 'resdef1'
+        object_url = self.object_url.format(
+            env_id, '', res_name
+        )
+        res = self.client.get(object_url)
+        self.assertEqual(200, res.status_code)
+        self.assertEqual({}, res.json)
+
     def test_get_resource_values_effective(self):
         self._fixture()
         res = self.client.put('/environments/9/resources/5/values',
                               data={'key': 'value'})
-        self.assertEqual(res.status_code, 204)
+        self.assertEqual(204, res.status_code)
         self.assertEqual(res.data, b'')
         res = self.client.get(
             '/environments/9/lvl1/1/resources/5/values?effective',
         )
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(200, res.status_code)
         self.assertEqual(res.json, {'key': 'value'})
 
-    def test_get_resource_values_redirect(self):
+    def test_get_resource_values_redirect_by_name_with_query(self):
         self._fixture()
-        self.client.put('/environments/9/resources/5/values',
-                        data={'key': 'value'})
-        res = self.client.get(
-            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/values',
-        )
-        self.assertEqual(res.status_code, 308)
-        self.assertEqual(
-            res.headers['Location'],
-            'http://localhost'
-            '/environments/9/lvl1/val1/lvl2/val2/resources/5/values',
-        )
+        env_id = 9
+        res_name = 'resdef1'
+        obj_url = self.object_url.format(env_id, '', res_name)
+        expected = {'key': 'value'}
+        self.client.put(obj_url, data=expected)
+        res = self.client.get(obj_url + '?effective')
+        self.assertEqual(200, res.status_code)
+        self.assertEqual(expected, res.json)
 
-    def test_get_resource_values_redirect_with_query(self):
+    def test_put_resource_values_by_name(self):
         self._fixture()
-        self.client.put('/environments/9/resources/5/values',
-                        data={'key': 'value'})
-        res = self.client.get(
-            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/values'
-            '?effective',
+        env_id = 9
+        res_name = 'resdef1'
+        obj_url = self.object_url.format(
+            env_id, '', res_name
         )
-        self.assertEqual(res.status_code, 308)
-        self.assertEqual(
-            res.headers['Location'],
-            'http://localhost'
-            '/environments/9/lvl1/val1/lvl2/val2/resources/5/values?effective',
-        )
-
-    def test_put_resource_values_redirect(self):
-        self._fixture()
-        res = self.client.put(
-            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/values',
-            data={'k': 'v'},
-        )
-        self.assertEqual(res.status_code, 308)
-        self.assertEqual(
-            res.headers['Location'],
-            'http://localhost'
-            '/environments/9/lvl1/val1/lvl2/val2/resources/5/values',
-        )
+        expected = {'key': 'value'}
+        res = self.client.put(obj_url, data=expected)
+        self.assertEqual(res.status_code, 204)
+        res = self.client.get(obj_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(expected, res.json)
 
     def test_put_resource_values_not_found(self):
         self.app.config["PROPAGATE_EXCEPTIONS"] = True
@@ -159,7 +159,7 @@ class TestResourceValues(BaseTest):
         data = [['a', 'b', 'c', 'value']]
         obj_keys_url = self.object_keys_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id,
             'set'
         )
@@ -177,7 +177,7 @@ class TestResourceValues(BaseTest):
 
         obj_url = self.object_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id
         )
         obj_keys_url = obj_url + '/keys/set'
@@ -263,7 +263,7 @@ class TestResourceValues(BaseTest):
 
         obj_url = self.object_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id
         )
         obj_keys_url = obj_url + '/keys/delete'
@@ -271,6 +271,37 @@ class TestResourceValues(BaseTest):
         data = [['key_0']]
         res = self.client.put(obj_keys_url, data=data)
         self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key_1': 'val_1'}, actual)
+
+    def test_put_resource_values_delete_by_name(self):
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        res_def_name = 'resdef1'
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'key_0': 'val_0', 'key_1': 'val_1'}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_name
+        )
+        obj_keys_url = obj_url + '/keys/delete'
+
+        data = [['key_0']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id
+        )
 
         res = self.client.get(obj_url)
         self.assertEqual(200, res.status_code)
@@ -288,7 +319,7 @@ class TestResourceValues(BaseTest):
 
         obj_keys_url = self.object_keys_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id,
             'delete'
         )

@@ -11,22 +11,33 @@
 # under the License.
 
 import flask
-import werkzeug
 
 import flask_restful
 from flask_restful import fields
 
 from tuning_box import db
+from tuning_box import errors
 
 
 def iter_environment_level_values(environment, levels):
     env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
+    if len(env_levels) < len(levels):
+        raise errors.TuningboxNotFound(
+            "Levels {0} can't be matched with "
+            "environment {1} levels: {2}".format(
+                [l[0] for l in levels],
+                environment.id,
+                [l.name for l in env_levels]
+            )
+        )
     level_pairs = zip(env_levels, levels)
     for env_level, (level_name, level_value) in level_pairs:
         if env_level.name != level_name:
-            raise werkzeug.exceptions.BadRequest(
+            raise errors.TuningboxNotFound(
                 "Unexpected level name '{0}'. Expected '{1}'.".format(
-                    level_name, env_level.name))
+                    level_name, env_level.name)
+            )
+
         level_value_db = db.get_or_create(
             db.EnvironmentHierarchyLevelValue,
             level=env_level,

@@ -10,9 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import werkzeug
+import six
 
 from tuning_box import db
+from tuning_box import errors
 from tuning_box.library import hierarchy_levels
 from tuning_box.tests.test_app import BaseTest
 
@@ -50,13 +51,13 @@ class TestLevelsHierarchy(BaseTest):
         self._fixture()
         with self.app.app_context(), db.db.session.begin():
             exc = self.assertRaises(
-                werkzeug.exceptions.BadRequest,
+                errors.TuningboxNotFound,
                 hierarchy_levels.get_environment_level_value,
                 db.Environment(id=9),
                 [('lvlx', 'val1')],
             )
             self.assertEqual(
-                exc.description,
+                six.text_type(exc),
                 "Unexpected level name 'lvlx'. Expected 'lvl1'.",
             )
 

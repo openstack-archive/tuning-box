@@ -134,8 +134,8 @@ def build_app(configure_logging=True, with_keystone=True):
                                handle_keys_operation_error)
     db.db.init_app(app)
     if configure_logging:
-        log_level = app.config.get('LOG_LEVEL', 'INFO')
-        logger.init_logger(log_level)
+        log_level = app.config.get('LOG_LEVEL', 'DEBUG')
+        logger.init_logger(app, log_level)
     if with_keystone:
         app.wsgi_app = keystone.KeystoneMiddleware(app)
     return app

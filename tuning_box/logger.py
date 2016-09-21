@@ -20,9 +20,8 @@ def get_formatter():
     return logging.Formatter(fmt=log_format, datefmt=date_format)
 
 
-def init_logger(log_level):
+def init_logger(app, log_level):
     handler = logging.StreamHandler()
     handler.setFormatter(get_formatter())
-    logger = logging.getLogger()
-    logger.addHandler(handler)
-    logger.setLevel(log_level)
+    app.logger.addHandler(handler)
+    app.logger.setLevel(log_level)

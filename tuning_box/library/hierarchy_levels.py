@@ -11,6 +11,7 @@
 # under the License.
 
 import flask
+from flask import current_app as app
 
 import flask_restful
 from flask_restful import fields
@@ -20,7 +21,12 @@ from tuning_box import errors
 
 
 def iter_environment_level_values(environment, levels):
+    app.logger.debug("Getting environment level values. Env: %s, "
+                     "levels: %s", environment.id, levels)
     env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
+    app.logger.debug("Environment levels got. Env: %s, levels: %s",
+                     environment.id, [l.name for l in env_levels])
+
     if len(env_levels) < len(levels):
         raise errors.TuningboxNotFound(
             "Levels {0} can't be matched with "

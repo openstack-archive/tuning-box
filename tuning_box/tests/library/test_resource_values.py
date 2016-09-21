@@ -11,6 +11,9 @@
 # under the License.
 
 import itertools
+import uuid
+
+import six
 
 from tuning_box import db
 from tuning_box.tests.test_app import BaseTest
@@ -365,3 +368,71 @@ class TestResourceValues(BaseTest):
             'key3': ['root_value_3', '/']
         }
         self.assertEqual(expected, res.json)
+
+    def generate_values(self, size):
+        result = {}
+        for i in six.moves.range(size):
+            result[six.text_type(uuid.uuid4())] = i
+        return result
+
+    def test_get_resource_values_effective_lot_of_data(self):
+        self._fixture()
+        env_id = 9
+        res_id = 5
+        keys_on_root = 10000
+        keys_on_lvl1 = 15000
+        keys_on_lvl2 = 20000
+        values_on_level = 500
+
+        # Adding values on the root level
+        self._add_resource_values(
+            env_id, res_id, (), self.generate_values(keys_on_root))
+
+        # Adding values on the level lvl1 and lvl2
+        lvl_1_values = self.generate_values(keys_on_lvl1)
+        lvl_2_values = self.generate_values(keys_on_lvl2)
+        for lvl_val in six.moves.range(values_on_level):
+            lvl_val = six.text_type(lvl_val)
+            self._add_resource_values(
+                env_id, res_id, (('lvl1', lvl_val),), lvl_1_values)
+            self._add_resource_values(
+                env_id, res_id, (('lvl1', lvl_val), ('lvl2', lvl_val)),
+                lvl_2_values)
+
+        with self.app.app_context():
+            res_vals_count = db.ResourceValues.query.count()
+            self.assertEqual(1 + values_on_level * 2, res_vals_count)
+
+        # Check keys num on root level
+        obj_url = self.object_url.format(
+            env_id, self.get_levels_path(()),
+            res_id
+        )
+        res = self.client.get(obj_url)
+        self.assertEqual(keys_on_root, len(res.json))
+
+        res = self.client.get(obj_url, query_string={'effective': 1})
+        self.assertEqual(keys_on_root, len(res.json))
+
+        # Check keys num on lvl1
+        obj_url = self.object_url.format(
+            env_id, self.get_levels_path((('lvl1', '1'),)),
+            res_id
+        )
+        res = self.client.get(obj_url)
+        self.assertEqual(keys_on_lvl1, len(res.json))
+
+        res = self.client.get(obj_url, query_string={'effective': 1})
+        self.assertEqual(keys_on_root + keys_on_lvl1, len(res.json))
+
+        # Check keys num on lvl2
+        obj_url = self.object_url.format(
+            env_id, self.get_levels_path((('lvl1', '1'), ('lvl2', '2'))),
+            res_id
+        )
+        res = self.client.get(obj_url)
+        self.assertEqual(keys_on_lvl2, len(res.json))
+
+        res = self.client.get(obj_url, query_string={'effective': 1})
+        self.assertEqual(keys_on_root + keys_on_lvl1 + keys_on_lvl2,
+                         len(res.json))

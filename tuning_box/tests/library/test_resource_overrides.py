@@ -278,8 +278,8 @@ class TestResourceOverrides(BaseTest):
 
         # Checking lookup info
         res = self.client.get(
-            '/environments/9/lvl1/1/lvl2/2/resources/5/values?'
-            'effective&show_lookup',
+            '/environments/9/lvl1/1/lvl2/2/resources/5/values',
+            query_string={'effective': 1, 'show_lookup': 1}
         )
         self.assertEqual(res.status_code, 200)
         expected = {

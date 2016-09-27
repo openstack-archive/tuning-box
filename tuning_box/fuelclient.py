@@ -25,8 +25,15 @@ from tuning_box import client as tb_client
 
 
 class FuelHTTPClient(tb_client.HTTPClient):
+    if hasattr(fc_client, 'DefaultAPIClient'):
+        # Handling python-fuelclient version >= 10.0
+        fc_api = fc_client.DefaultAPIClient
+    else:
+        # Handling python-fuelclient version <= 9.0
+        fc_api = fc_client.APIClient
+
     def __init__(self):
-        service_catalog = fc_client.APIClient.keystone_client.service_catalog
+        service_catalog = self.fc_api.keystone_client.service_catalog
         base_url = service_catalog.url_for(
             service_type='config',
             endpoint_type='publicURL',
@@ -35,8 +42,8 @@ class FuelHTTPClient(tb_client.HTTPClient):
 
     def default_headers(self):
         headers = super(FuelHTTPClient, self).default_headers()
-        if fc_client.APIClient.auth_token:
-            headers['X-Auth-Token'] = fc_client.APIClient.auth_token
+        if self.fc_api.auth_token:
+            headers['X-Auth-Token'] = self.fc_api.auth_token
         return headers
 
 

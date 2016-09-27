@@ -382,7 +382,7 @@ class TestResourceValues(BaseTest):
         keys_on_root = 10000
         keys_on_lvl1 = 15000
         keys_on_lvl2 = 20000
-        values_on_level = 500
+        values_on_level = 100
 
         # Adding values on the root level
         self._add_resource_values(

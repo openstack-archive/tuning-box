@@ -77,9 +77,10 @@ class TestShowEnvironment(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
         for s in [
-            ('json', ('/environments/9', 'env show 9 -f json',
+            ('json', ('/environments/9', 'env show 9 -f json -c id',
                       '{\n  "id": 1\n}')),
-            ('yaml', ('/environments/9', 'env show 9 -f yaml', 'id: 1\n'))
+            ('yaml', ('/environments/9', 'env show 9 -f yaml -c id',
+                      'id: 1\n'))
         ]
     ]
     mock_url = None

@@ -116,6 +116,12 @@ class BaseTest(base.TestCase):
             obj = model.query.get(key)
             self.assertIsNone(obj)
 
+    def get_levels_path(self, levels):
+        if levels:
+            return '/'.join(itertools.chain.from_iterable(levels)) + '/'
+        else:
+            return ''
+
 
 class TestApp(BaseTest):
     pass

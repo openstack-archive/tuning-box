@@ -10,15 +10,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import itertools
-
 from tuning_box import db
 from tuning_box.tests.test_app import BaseTest
 
 
 class TestResourceOverrides(BaseTest):
 
-    object_url = '/environments/{0}/{1}/resources/{2}/overrides'
+    object_url = '/environments/{0}/{1}resources/{2}/overrides'
     object_keys_url = object_url + '/keys/{3}'
 
     def test_put_resource_values_overrides_root(self):
@@ -102,32 +100,54 @@ class TestResourceOverrides(BaseTest):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'key': 'value1', 'key1': 'value2'})
 
-    def test_put_resource_overrides_redirect(self):
+    def test_put_resource_overrides_by_name(self):
         self._fixture()
-        res = self.client.put(
-            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/overrides',
-            data={'k': 'v'},
-        )
-        self.assertEqual(res.status_code, 308)
-        self.assertEqual(
-            res.headers['Location'],
-            'http://localhost'
-            '/environments/9/lvl1/val1/lvl2/val2/resources/5/overrides',
-        )
+        env_id = 9
+        res_id = 5
+        res_name = 'resdef1'
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        data = {'k': 'v'}
 
-    def test_get_resource_overrides_redirect(self):
+        obj_name_url = self.object_url.format(
+            env_id,
+            self.get_levels_path(levels),
+            res_name
+        )
+        res = self.client.put(obj_name_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        obj_id_url = self.object_url.format(
+            env_id,
+            self.get_levels_path(levels),
+            res_id
+        )
+        res = self.client.get(obj_id_url)
+        self.assertEqual(200, res.status_code)
+        self.assertEqual(data, res.json)
+
+    def test_get_resource_overrides_by_name(self):
         self._fixture()
-        self.client.put('/environments/9/resources/5/overrides',
-                        data={'key': 'value'})
-        res = self.client.get(
-            '/environments/9/lvl1/val1/lvl2/val2/resources/resdef1/overrides',
+        env_id = 9
+        res_id = 5
+        res_name = 'resdef1'
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+
+        obj_id_url = self.object_url.format(
+            env_id,
+            self.get_levels_path(levels),
+            res_id
         )
-        self.assertEqual(res.status_code, 308)
-        self.assertEqual(
-            res.headers['Location'],
-            'http://localhost'
-            '/environments/9/lvl1/val1/lvl2/val2/resources/5/overrides',
+        data = {'key': 'value'}
+        self.client.put(obj_id_url, data=data)
+
+        obj_name_url = self.object_url.format(
+            env_id,
+            self.get_levels_path(levels),
+            res_name
         )
+        res = self.client.get(obj_name_url)
+        self.assertEqual(200, res.status_code)
+        self.assertEqual(data, res.json)
 
     def test_put_resource_overrides_set_operation_error(self):
         self.app.config["PROPAGATE_EXCEPTIONS"] = True
@@ -143,7 +163,7 @@ class TestResourceOverrides(BaseTest):
         data = [['a', 'b', 'c', 'value']]
         obj_keys_url = self.object_keys_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id,
             'set'
         )
@@ -162,7 +182,7 @@ class TestResourceOverrides(BaseTest):
 
         obj_url = self.object_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id
         )
         obj_keys_url = obj_url + '/keys/set'
@@ -209,7 +229,7 @@ class TestResourceOverrides(BaseTest):
 
         obj_url = self.object_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id
         )
         obj_keys_url = obj_url + '/keys/delete'
@@ -235,7 +255,7 @@ class TestResourceOverrides(BaseTest):
 
         obj_keys_url = self.object_keys_url.format(
             environment_id,
-            '/'.join(itertools.chain.from_iterable(levels)),
+            self.get_levels_path(levels),
             res_def_id,
             'delete'
         )

@@ -26,14 +26,6 @@ class ResourceOverrides(flask_restful.Resource):
         environment = db.Environment.query.get_or_404(environment_id)
         res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
-        if res_def.id != resource_id_or_name:
-            from tuning_box.app import api
-            return flask.redirect(api.url_for(
-                ResourceOverrides,
-                environment_id=environment_id,
-                levels=levels,
-                resource_id_or_name=res_def.id,
-            ), code=308)
 
         level_value = hierarchy_levels.get_environment_level_value(
             environment, levels)
@@ -51,15 +43,6 @@ class ResourceOverrides(flask_restful.Resource):
         environment = db.Environment.query.get_or_404(environment_id)
         res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
-        if res_def.id != resource_id_or_name:
-            from tuning_box.app import api
-            url = api.url_for(
-                ResourceOverrides,
-                environment_id=environment_id,
-                levels=levels,
-                resource_id_or_name=res_def.id,
-            )
-            return flask.redirect(url, code=308)
 
         level_value = hierarchy_levels.get_environment_level_value(
             environment, levels)

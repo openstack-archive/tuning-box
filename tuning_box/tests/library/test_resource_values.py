@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import itertools
 import uuid
 
 import six
@@ -23,12 +22,6 @@ class TestResourceValues(BaseTest):
 
     object_url = '/environments/{0}/{1}resources/{2}/values'
     object_keys_url = object_url + '/keys/{3}'
-
-    def get_levels_path(self, levels):
-        if levels:
-            return '/'.join(itertools.chain.from_iterable(levels)) + '/'
-        else:
-            return ''
 
     def test_put_resource_values_root(self):
         self._fixture()
@@ -114,7 +107,7 @@ class TestResourceValues(BaseTest):
         self.assertEqual(200, res.status_code)
         self.assertEqual(res.json, {'key': 'value'})
 
-    def test_get_resource_values_redirect_by_name_with_query(self):
+    def test_get_resource_values_by_name_with_query(self):
         self._fixture()
         env_id = 9
         res_name = 'resdef1'

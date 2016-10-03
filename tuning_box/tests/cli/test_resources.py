@@ -10,208 +10,174 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import testscenarios
+import io
+import json
+import unittest
+
+import mock
 
 from tuning_box.cli import base as cli_base
-from tuning_box.tests import base
-from tuning_box.tests.cli import _BaseCLITest
+from tuning_box.cli import errors
+from tuning_box.cli import resources
+from tuning_box.tests import cli as tests_cli
 
 
-class TestLevelsConverter(testscenarios.WithScenarios, base.TestCase):
-    scenarios = [
-        (s[0], dict(zip(('input', 'expected_result', 'expected_error'), s[1])))
-        for s in [
-            ('empty', ('', None, TypeError)),
-            ('one', ('lvl=val', [('lvl', 'val')])),
-            ('two', ('lvl1=val1,lvl2=val2', [('lvl1', 'val1'),
-                                             ('lvl2', 'val2')])),
-            ('no_eq', ('val', None, TypeError)),
-            ('no_eq2', ('lvl1=val2,val', None, TypeError)),
-            ('two_eq', ('lvl1=foo=baz', [('lvl1', 'foo=baz')])),
-        ]
-    ]
-
-    input = None
-    expected_result = None
-    expected_error = None
+class TestLevelsConverter(unittest.TestCase):
 
     def test_levels(self):
-        if self.expected_error:
-            self.assertRaises(
-                self.expected_error, cli_base.level_converter, self.input)
-        else:
-            res = cli_base.level_converter(self.input)
-            self.assertEqual(self.expected_result, res)
-
-
-class TestGet(testscenarios.WithScenarios, _BaseCLITest):
-    scenarios = [
-        (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
-        for s in [
-            ('global,json', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --format=json',
-                '{\n  "hello": "world"\n}',
-            )),
-            ('global,lookup', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --format=json --show-lookup',
-                '{\n  "hello": "world"\n}',
-            )),
-            ('lowlevel,json', (
-                '/environments/1/lvl1/value1/resources/1/values?effective',
-                'get --env 1 --level lvl1=value1 --resource 1  --format=json',
-                '{\n  "hello": "world"\n}',
-            )),
-            ('global,yaml', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --format yaml',
-                'hello: world\n',
-            )),
-            ('lowlevel,yaml', (
-                '/environments/1/lvl1/value1/resources/1/values?effective',
-                'get --env 1 --level lvl1=value1 --resource 1 --format yaml',
-                'hello: world\n',
-            )),
-            ('key,json', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key hello --format json',
-                '{\n  "hello": "world"\n}',
-            )),
-            ('key,lookup', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key hello --format json -s',
-                '{\n  "hello": "world"\n}',
-            )),
-            ('key,yaml', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key hello --format yaml',
-                'hello: world\n',
-            )),
-            ('no_key,json', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key no --format json',
-                '{\n  "no": {}\n}',
-            )),
-            ('no_key,yaml', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key no --format yaml',
-                "'no': {}\n",
-            ))
+        params_set = [
+            ('lvl=val', [('lvl', 'val')]),
+            ('lvl1=val1,lvl2=val2', [('lvl1', 'val1'), ('lvl2', 'val2')]),
+            ('lvl1=foo=baz', [('lvl1', 'foo=baz')])
         ]
-    ]
+        for params, expected in params_set:
+            actual = cli_base.level_converter(params)
+            self.assertEqual(actual, expected)
 
-    mock_url = None
-    args = None
-    expected_result = None
-
-    def test_get(self):
-        self.req_mock.get(
-            self.BASE_URL + self.mock_url,
-            headers={'Content-Type': 'application/json'},
-            json={'hello': 'world'},
-        )
-        self.cli.run(self.args.split())
-        self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
-
-
-class TestSet(testscenarios.WithScenarios, _BaseCLITest):
-    scenarios = [
-        (s[0],
-         dict(zip(('args', 'expected_body', 'should_get', 'stdin'), s[1])))
-        for s in [
-            ('json', ('--format json', {'a': 3}, False, '{"a": 3}')),
-            ('yaml', ('--format yaml', {'a': 3}, False, 'a: 3')),
-            ('key,json', ('--key b --format json', {'a': 1, 'b': {'a': 3}},
-                          True, '{"a": 3}')),
-            ('key,yaml', ('--key b --format yaml', {'a': 1, 'b': {'a': 3}},
-                          True, 'a: 3')),
-            ('key,null', ('--key b --type null', {'a': 1, 'b': None})),
-            ('key,str', ('--key b --type str --value 4', {'a': 1, 'b': '4'})),
+    def test_levels_failure(self):
+        params_set = [
+            ('', TypeError),
+            ('val', TypeError),
+            ('lvl1=val2,val', TypeError)
         ]
-    ]
+        for params, expected in params_set:
+            self.assertRaises(expected, cli_base.level_converter, params)
 
-    args = None
-    expected_body = None
-    should_get = True
-    stdin = None
 
-    url_last_part = 'values'
-    cmd = 'set'
+class TestGet(tests_cli.BaseCommandTest):
 
-    def test_set(self):
-        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
-            self.url_last_part
-        self.req_mock.put(url)
-        if self.should_get:
-            self.req_mock.get(
-                url,
-                headers={'Content-Type': 'application/json'},
-                json={'a': 1, 'b': True},
+    cmd = resources.Get(tests_cli.SafeTuningBoxApp(), None)
+
+    def test_arguments(self):
+        params_set = [
+            ('-e1', '-r1'),
+            ('-e1', '-r1', '-fjson'),
+            ('-e1', '-r1', '-fyaml'),
+            ('-e1', '-r1', '-ftable'),
+            ('-e1', '-r1', '-fshell'),
+            ('-e1', '-r1', '-fvalue'),
+            ('-e1', '-r1', '-la=1'),
+            ('-e1', '-r1', '-la=1,b=2'),
+            ('-e1', '-r1', '-la=1,b=2', '-kkey'),
+            ('-e1', '-r1', '-la=1,b=2', '-s'),
+            ('--env=1', '--resource=1', '--format=json', '--level=a=1'
+             '--key=kk', '--show-lookup'),
+        ]
+        for params in params_set:
+            self.parser.parse_args(params)
+
+    def test_result(self):
+        parsed_params = self.parser.parse_args(('-e1', '-r1', '-fjson'))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            m_client.get.return_value = {'a': 1, 'b': 2}
+            self.cmd.run(parsed_params)
+            m_client.get.assert_called_with(
+                '/environments/1/resources/1/values',
+                params={'effective': True}
             )
-        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
-                             self.args).split()
-        if self.stdin:
-            self.cli.stdin.write(self.stdin)
-            self.cli.stdin.seek(0)
-        self.cli.run(args)
-        req_history = self.req_mock.request_history
-        if self.should_get:
-            self.assertEqual('GET', req_history[0].method)
-        self.assertEqual('PUT', req_history[-1].method)
-        self.assertEqual(self.expected_body, req_history[-1].json())
 
 
-class TestDelete(testscenarios.WithScenarios, _BaseCLITest):
-    scenarios = [
-        (s[0],
-         dict(zip(('args', 'expected_body'), s[1])))
-        for s in [
-            ('k1', ('-k k1', "ResourceValue for key k1 was deleted\n")),
-            ('xx', ('-k xx', "ResourceValue for key xx was deleted\n")),
+class TestSet(tests_cli.BaseCommandTest):
+
+    cmd = resources.Set(tests_cli.SafeTuningBoxApp(), None)
+    url_end = 'values'
+
+    def test_arguments(self):
+        params_set = [
+            ('-e1', '-r1'),
+            ('-e1', '-r1', '-fjson'),
+            ('-e1', '-r1', '-fyaml'),
+            ('-e1', '-r1', '-fjson'),
+            ('-e1', '-r1', '-tnull'),
+            ('-e1', '-r1', '-tint'),
+            ('-e1', '-r1', '-tstr'),
+            ('-e1', '-r1', '-tjson'),
+            ('-e1', '-r1', '-tyaml'),
+            ('-e1', '-r1', '-tbool'),
+            ('-e1', '-r1', '-la=1,b=2'),
+            ('-e1', '-r1', '-la=1,b=2', '-kkey'),
+            ('-e1', '-r1', '-la=1,b=2', '-kkey', '-vval'),
+            ('--env=1', '--resource=1', '--level=a=1,b=2', '--key=key',
+             '--value=val')
         ]
-    ]
+        for params in params_set:
+            self.parser.parse_args(params)
 
-    args = None
-    expected_body = None
-    url_last_part = 'values'
-    cmd = 'del'
-
-    def test_delete(self):
-        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
-            self.url_last_part + '/keys/delete'
-        self.req_mock.patch(url)
-        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
-                             self.args).split()
-        self.cli.run(args)
-        self.assertEqual(self.expected_body, self.cli.stdout.getvalue())
-
-
-class TestOverride(TestSet):
-    url_last_part = 'overrides'
-    cmd = 'override'
-
-
-class TestDeleteOverride(testscenarios.WithScenarios, _BaseCLITest):
-    scenarios = [
-        (s[0],
-         dict(zip(('args', 'expected_body'), s[1])))
-        for s in [
-            ('k1', ('-k k1', "ResourceOverride for key k1 was deleted\n")),
-            ('xx', ('-k xx', "ResourceOverride for key xx was deleted\n")),
+    def test_arguments_constraints(self):
+        params_set = [
+            ('-e1', '-r1', '-tint'),  # no key
+            ('-e1', '-r1', '-vval'),  # no key
+            ('-e1', '-r1', '-tstr', '-vval'),  # no key
+            ('-e1', '-r1', '-kk', '-vval', '-fjson'),  # should use type
+            ('-e1', '-r1', '-kk', '-tstr', '-fjson'),  # no val
         ]
-    ]
+        for params in params_set:
+            parsed_params = self.parser.parse_args(params)
+            self.assertRaises(errors.IncompatibleParams, self.cmd.run,
+                              parsed_params)
 
-    args = None
-    expected_body = None
-    url_last_part = 'overrides'
-    cmd = 'rm override'
+    def test_result_no_key(self):
+        parsed_params = self.parser.parse_args(('-e1', '-r1', '-fjson'))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            data = {'a': 'b'}
+            json.dump(data, self.cmd.app.stdin)
+            self.cmd.app.stdin.seek(io.SEEK_SET)
+            self.cmd.run(parsed_params)
+            m_client.put.assert_called_with(
+                '/environments/1/resources/1/{0}'.format(self.url_end),
+                data
+            )
 
-    def test_delete(self):
-        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
-            self.url_last_part + '/keys/delete'
-        self.req_mock.patch(url)
-        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
-                             self.args).split()
-        self.cli.run(args)
-        self.assertEqual(self.expected_body, self.cli.stdout.getvalue())
+    def test_result_with_key(self):
+        parsed_params = self.parser.parse_args(('-e1', '-r1', '-kkey',
+                                                '-tjson', '-v{"a": "b"}'))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            m_client.get.return_value = {'init': 'value'}
+            self.cmd.run(parsed_params)
+            m_client.put.assert_called_with(
+                '/environments/1/resources/1/{0}'.format(self.url_end),
+                {'init': 'value', 'key': {'a': 'b'}}
+            )
+
+
+class TestOverride(tests_cli.BaseCommandTest):
+
+    cmd = resources.Override(tests_cli.SafeTuningBoxApp(), None)
+    url_end = 'overrides'
+
+
+class TestDelete(tests_cli.BaseCommandTest):
+
+    cmd = resources.Delete(tests_cli.SafeTuningBoxApp(), None)
+    url_end = 'values'
+
+    def test_arguments(self):
+        params_set = [
+            ('-e1', '-r1', '-la=1,b=2', '-kkey'),
+            ('--env=1', '--resource=1', '--level=a=1', '--key=k'),
+        ]
+        for params in params_set:
+            self.parser.parse_args(params)
+
+    def test_result(self):
+        parsed_params = self.parser.parse_args(('-e1', '-r1', '-la=1,b=2',
+                                                '-kkey'))
+        url = '/environments/1/a/1/b/2/resources/1/{0}/keys/delete'.format(
+            self.url_end)
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            self.cmd.run(parsed_params)
+            m_client.patch.assert_called_with(url, [['key']])
+
+
+class TestDeleteOverride(TestDelete):
+
+    cmd = resources.DeleteOverride(tests_cli.SafeTuningBoxApp(), None)
+    url_end = 'overrides'

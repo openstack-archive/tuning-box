@@ -38,26 +38,6 @@ except NameError:
     text_type = str
 
 
-def format_output(output, format_):
-    if format_ == 'plain':
-        if output is None:
-            return ''
-        if isinstance(output, text_type):
-            if text_type is str:
-                return output
-            else:
-                return output.encode('utf-8')
-        format_ = 'json'
-        # numbers, booleans, lists and dicts will be represented as JSON
-    if format_ == 'json':
-        return json.dumps(output)
-    if format_ == 'yaml':
-        # Usage of safe_dump here is crucial since PyYAML emits
-        # "!!python/unicode" objects from unicode strings by defaul
-        return yaml.safe_dump(output, default_flow_style=False)
-    raise RuntimeError("Unknown format '{}'".format(format_))
-
-
 class BaseCommand(command.Command):
 
     def get_client(self):
@@ -144,22 +124,3 @@ class BaseShowCommand(BaseOneCommand, show.ShowOne):
             return self.columns, data
         except fc_error.BadDataException:
             return zip(*result.items())
-
-
-class FormattedCommand(BaseCommand):
-    format_choices = ('json', 'yaml', 'plain')
-
-    def get_parser(self, *args, **kwargs):
-        parser = super(FormattedCommand, self).get_parser(*args, **kwargs)
-        parser.add_argument(
-            '-f', '--format',
-            choices=self.format_choices,
-            default='json',
-            help="Desired format for return value",
-        )
-        return parser
-
-    def run(self, parsed_args):
-        res = self.take_action(parsed_args)
-        self.app.stdout.write(format_output(res, parsed_args.format))
-        return 0

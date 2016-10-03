@@ -77,7 +77,7 @@ class ModifyResourceDefinitionCommand(ResourceDefinitionsCommand):
         )
         return parser
 
-    def verify_arguments(self, parsed_args):
+    def verify_arguments(self, parsed_args, is_creation=True):
         if parsed_args.content is not None:
             if parsed_args.data_format is not None:
                 raise errors.IncompatibleParams(
@@ -89,15 +89,21 @@ class ModifyResourceDefinitionCommand(ResourceDefinitionsCommand):
                     "You should specify --type if you pass "
                     "content in command line."
                 )
-        elif parsed_args.data_format is None:
-            raise errors.IncompatibleParams(
-                "You should specify --data-format for stdin data if you "
-                "don't pass content in command line."
-            )
+        elif is_creation:
+            if parsed_args.data_format is None:
+                raise errors.IncompatibleParams(
+                    "You should specify --data-format for stdin data if you "
+                    "don't pass content in command line."
+                )
+            elif parsed_args.type is not None:
+                raise errors.IncompatibleParams(
+                    "You shouldn't specify --type if you don't pass "
+                    "content in command line."
+                )
         elif parsed_args.type is not None:
             raise errors.IncompatibleParams(
-                "--type and --data-format parameters can't "
-                "be used together."
+                "You shouldn't specify --type if you don't pass "
+                "content in command line."
             )
 
     def get_content(self, parsed_args):
@@ -135,6 +141,7 @@ class UpdateResourceDefinition(ModifyResourceDefinitionCommand,
                                base.BaseOneCommand):
 
     def take_action(self, parsed_args):
+        self.verify_arguments(parsed_args, is_creation=False)
         data = {}
         if parsed_args.name is not None:
             data['name'] = parsed_args.name

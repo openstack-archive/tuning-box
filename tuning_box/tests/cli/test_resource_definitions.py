@@ -10,141 +10,183 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import testscenarios
-import yaml
+import io
+import json
 
-from tuning_box.tests.cli import _BaseCLITest
+import mock
+
+from tuning_box.cli import base as cli_base
+from tuning_box.cli import errors
+from tuning_box.cli import resource_definitions as res_def
+from tuning_box.tests import cli as tests_cli
 
 
-class TestCreateResourceDefinition(testscenarios.WithScenarios, _BaseCLITest):
-    scenarios = [
-        (s[0],
-         dict(zip(('args', 'expected_body', 'stdin'), s[1])))
-        for s in [
-            ('json', ('def create -n n -i 1 -d json -f yaml',
-                      'content: {}\ncomponent_id: 1\nid: 1\nname: n\n',
-                      '{"a": 3}')),
-            ('yaml', ('def create -n n -i 1 -d yaml -f yaml',
-                      'content: {}\ncomponent_id: 1\nid: 1\nname: n\n',
-                      'a: b\n')),
+class TestCreateResourceDefinition(tests_cli.BaseCommandTest):
+
+    cmd = res_def.CreateResourceDefinition(tests_cli.SafeTuningBoxApp(), None)
+
+    def test_arguments(self):
+        params_set = [
+            ('-nname',),
+            ('-nname', '-fjson'),
+            ('-nname', '-fyaml'),
+            ('-nname', '-djson'),
+            ('-nname', '-dyaml'),
+            ('-nname', '-i1'),
+            ('-nname', '-i1', '-djson'),
+            ('-nname', '-i1', '-tjson', '-pa'),
+            ('--name=a', '--component=1', '--type=json', '--content=a'),
         ]
-    ]
+        for params in params_set:
+            self.parser.parse_args(params)
 
-    args = None
-    expected_body = None
-    stdin = None
-
-    def test_post(self):
-        url = self.BASE_URL + '/resource_definitions'
-        self.req_mock.post(
-            url,
-            headers={'Content-Type': 'application/json'},
-            json={'id': 1, 'component_id': 1, 'name': 'n', 'content': {}}
-        )
-        if self.stdin:
-            self.cli.stdin.write(self.stdin)
-            self.cli.stdin.seek(0)
-        self.cli.run(self.args.split())
-        self.assertEqual(
-            yaml.safe_load(self.expected_body),
-            yaml.safe_load(self.cli.stdout.getvalue())
-        )
-
-
-class TestListResourceDefinitions(testscenarios.WithScenarios, _BaseCLITest):
-
-    scenarios = [
-        (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
-        for s in [
-            ('json', ('/resource_definitions', 'def list -f json', '[]')),
-            ('yaml', ('/resource_definitions', 'def list --format yaml',
-                      '[]\n')),
+    def test_arguments_constraints(self):
+        params_set = [
+            ('-na', '-px', '-djson'),  # should use type
+            ('-na', '-px'),  # should use type
+            ('-na',),  # no data format
+            ('-na', '-tjson', '-djson'),  # type and content-data
         ]
-    ]
-    mock_url = None
-    args = None
-    expected_result = None
+        for params in params_set:
+            parsed_params = self.parser.parse_args(params)
+            self.assertRaises(errors.IncompatibleParams, self.cmd.run,
+                              parsed_params)
 
-    def test_get(self):
-        self.req_mock.get(
-            self.BASE_URL + self.mock_url,
-            headers={'Content-Type': 'application/json'},
-            json=[],
-        )
-        self.cli.run(self.args.split())
-        self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
+    def test_result(self):
+        parsed_params = self.parser.parse_args(('-na', '-i1', '-p"aaa"',
+                                                '-tjson'))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            m_client.post.return_value = {'a': 1, 'b': 2}
+            self.cmd.run(parsed_params)
+            m_client.post.assert_called_with(
+                '/resource_definitions',
+                {'content': 'aaa', 'component_id': 1, 'name': 'a'}
+            )
 
 
-class TestShowComponent(testscenarios.WithScenarios, _BaseCLITest):
+class TestListResourceDefinitions(tests_cli.BaseCommandTest):
 
-    scenarios = [
-        (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
-        for s in [
-            ('yaml', ('/resource_definitions/9', 'def show 9 -f yaml',
-                      'id: 1\nname: n\ncomponent_id: 2\ncontent: {}\n')),
+    cmd = res_def.ListResourceDefinitions(tests_cli.SafeTuningBoxApp(), None)
+
+    def test_arguments(self):
+        params_set = [
+            ('-fjson',),
+            ('-fyaml',),
+            ('-ftable',),
+            ('-fvalue',),
+            ('-fcsv',),
+            ('-cid',),
         ]
-    ]
-    mock_url = None
-    args = None
-    expected_result = None
+        for params in params_set:
+            self.parser.parse_args(params)
 
-    def test_get(self):
-        self.req_mock.get(
-            self.BASE_URL + self.mock_url,
-            headers={'Content-Type': 'application/json'},
-            json={'id': 1, 'name': 'n', 'component_id': 2, 'content': {}},
-        )
-        self.cli.run(self.args.split())
-        self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
+    def test_result(self):
+        parsed_params = self.parser.parse_args(())
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            m_client.get.return_value = [
+                {'id': 1, 'name': 'n', 'component_id': 1, 'content': 'xx'}
+            ]
+            self.cmd.run(parsed_params)
+            m_client.get.assert_called_with('/resource_definitions')
 
 
-class TestDeleteComponent(testscenarios.WithScenarios, _BaseCLITest):
+class TestShowComponent(tests_cli.BaseCommandTest):
 
-    scenarios = [
-        (s[0], dict(zip(('mock_url', 'args', 'expected_result'), s[1])))
-        for s in [
-            ('', ('/resource_definitions/9', 'def delete 9',
-                  'Resource_definition with id 9 was deleted\n')),
+    cmd = res_def.ShowResourceDefinition(tests_cli.SafeTuningBoxApp(), None)
+
+    def test_arguments(self):
+        params_set = [
+            ('-fjson', '1'),
+            ('-fyaml', '1'),
+            ('-ftable', '1'),
+            ('-fvalue', '1'),
+            ('-fshell', '1'),
+            ('-cid', '1'),
         ]
-    ]
-    mock_url = None
-    args = None
-    expected_result = None
+        for params in params_set:
+            self.parser.parse_args(params)
 
-    def test_delete(self):
-        self.req_mock.delete(
-            self.BASE_URL + self.mock_url,
-            headers={'Content-Type': 'application/json'}
-        )
-        self.cli.run(self.args.split())
-        self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
+    def test_result(self):
+        parsed_params = self.parser.parse_args(('3',))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            m_client.get.return_value = {'id': 1, 'name': 'n',
+                                         'component_id': 1, 'content': 'xx'}
+            self.cmd.run(parsed_params)
+            m_client.get.assert_called_with('/resource_definitions/3')
 
 
-class TestUpdateResourceDefinition(testscenarios.WithScenarios, _BaseCLITest):
+class TestDeleteComponent(tests_cli.BaseCommandTest):
 
-    scenarios = [
-        (s[0], dict(zip(('args', 'expected_result', 'stdin'), s[1])))
-        for s in [
-            ('no_data', ('def update 9', '{}')),
-            ('name', ('def update 9 -n comp_name', '{}', False)),
-            ('component_id', ('def update 9 -i 1', '{}', False)),
-            ('content', ('def update 9 -p "a" -t yaml', '{}', False)),
-            ('stdin_content', ('def update 9 -d yaml', '{}', 'a: b')),
-            ('stdin_content', ('def update 9 -d yaml', '{}', 'a: b')),
+    cmd = res_def.DeleteResourceDefinition(tests_cli.SafeTuningBoxApp(), None)
+
+    def test_arguments(self):
+        params_set = [('1',)]
+        for params in params_set:
+            self.parser.parse_args(params)
+
+    def test_result(self):
+        parsed_params = self.parser.parse_args(('3',))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            self.cmd.run(parsed_params)
+            m_client.delete.assert_called_with('/resource_definitions/3')
+
+
+class TestUpdateResourceDefinition(tests_cli.BaseCommandTest):
+
+    cmd = res_def.UpdateResourceDefinition(tests_cli.SafeTuningBoxApp(), None)
+
+    def test_arguments(self):
+        params_set = [
+            ('-nname', '1'),
+            ('-nname', '-i1', '1'),
+            ('-nname', '-i1', '-pval', '1'),
+            ('-nname', '-i1', '-pval', '-tjson', '1'),
+            ('-nname', '-i1', '-pval', '-tyaml', '1'),
+            ('-nname', '-i1', '-djson', '1'),
+            ('-nname', '-i1', '-dyaml', '1'),
+            ('--name=a', '--component-id=1', '--type=json',
+             '--content=a', '1'),
+            ('--name=a', '--component-id=1', '--data-format=json', '1')
         ]
-    ]
-    args = None
-    expected_result = None
-    stdin = None
+        for params in params_set:
+            self.parser.parse_args(params)
 
-    def test_update(self):
-        self.req_mock.patch(
-            self.BASE_URL + '/resource_definitions/9',
-            headers={'Content-Type': 'application/json'},
-            json={}
-        )
-        if self.stdin:
-            self.cli.stdin.write(self.stdin)
-            self.cli.stdin.seek(0)
-        self.cli.run(self.args.split())
-        self.assertEqual(self.expected_result, self.cli.stdout.getvalue())
+    def test_arguments_constraints(self):
+        params_set = [
+            ('-px', '1'),  # no type
+            ('-px', '-djson', '1'),  # should use type
+            ('-px', '-djson', '-tjson', '1'),  # shouldn't use data-format
+            ('-tjson', '1'),  # no content
+        ]
+
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            data = {'a': 'b'}
+            json.dump(data, self.cmd.app.stdin)
+
+            for params in params_set:
+                parsed_params = self.parser.parse_args(params)
+                self.cmd.app.stdin.seek(io.SEEK_SET)
+                self.assertRaises(errors.IncompatibleParams, self.cmd.run,
+                                  parsed_params)
+
+    def test_result(self):
+        parsed_params = self.parser.parse_args(('-na', '-i1', '-p"aaa"',
+                                                '-tjson', '1'))
+        with mock.patch.object(cli_base.BaseCommand, 'get_client') as client:
+            m_client = mock.Mock()
+            client.return_value = m_client
+            self.cmd.run(parsed_params)
+            m_client.patch.assert_called_with(
+                '/resource_definitions/1',
+                {'content': 'aaa', 'component_id': 1, 'name': 'a'}
+            )

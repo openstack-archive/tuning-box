@@ -17,6 +17,7 @@ import yaml
 from cliff import show
 from fuelclient.cli import error as fc_error
 from fuelclient.common import data_utils
+from tuning_box.cli import errors
 
 from tuning_box.cli.base import BaseCommand
 from tuning_box.cli.base import level_converter
@@ -125,30 +126,35 @@ class Set(ResourcesCommand):
     def verify_arguments(self, parsed_args):
         if parsed_args.key is None:  # no key
             if parsed_args.value is not None or parsed_args.type is not None:
-                raise Exception("--value and --type arguments make sense only "
-                                "with --key argument.")
+                raise errors.IncompatibleParams(
+                    "--value and --type arguments make sense only "
+                    "with --key argument.")
             if parsed_args.format is None:
-                raise Exception("Please specify format of data passed to stdin"
-                                " to replace whole resource data.")
+                raise errors.IncompatibleParams(
+                    "Please specify format of data passed to stdin"
+                    " to replace whole resource data.")
         elif parsed_args.value is not None:  # have key and value
             if parsed_args.format is not None:
-                raise Exception("You shouldn't specify --format if you pass "
-                                "value in command line, specify --type "
-                                "instead.")
+                raise errors.IncompatibleParams(
+                    "You shouldn't specify --format if you pass "
+                    "value in command line, specify --type instead.")
             if parsed_args.type == 'null':
-                raise Exception("You shouldn't specify a value for 'null' type"
-                                " because there can be only one.")
+                raise errors.IncompatibleParams(
+                    "You shouldn't specify a value for 'null' type "
+                    "because there can be only one.")
             if parsed_args.type is None:
-                raise Exception("Please specify type of value passed in "
-                                "--value argument to properly represent it"
-                                " in the storage.")
+                raise errors.IncompatibleParams(
+                    "Please specify type of value passed in --value argument "
+                    "to properly represent it in the storage.")
         elif parsed_args.type != 'null':  # have key but no value
             if parsed_args.type is not None:
-                raise Exception("--type specifies type for value provided in "
-                                "--value but there is not --value argument")
+                raise errors.IncompatibleParams(
+                    "--type specifies type for value provided in --value "
+                    "but there is not --value argument")
             if parsed_args.format is None:
-                raise Exception("Please specify format of data passed to stdin"
-                                " to replace the key.")
+                raise errors.IncompatibleParams(
+                    "Please specify format of data passed to stdin "
+                    "to replace the key.")
 
     def get_value_to_set(self, parsed_args):
         type_ = parsed_args.type

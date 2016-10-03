@@ -12,10 +12,8 @@
 
 from __future__ import absolute_import
 
-from cliff import command
 from fuelclient import client as fc_client
 
-from tuning_box import cli
 from tuning_box.cli import base as cli_base
 from tuning_box.cli import components
 from tuning_box.cli import environments
@@ -145,15 +143,3 @@ class UpdateResourceDefinition(
     resource_definitions.UpdateResourceDefinition
 ):
     pass
-
-
-class Config(command.Command):
-    def get_parser(self, *args, **kwargs):
-        parser = super(Config, self).get_parser(*args, **kwargs)
-        parser.add_argument('args', nargs='*')
-        return parser
-
-    def take_action(self, parsed_args):
-        client = FuelHTTPClient()
-        app = cli.TuningBoxApp(client)
-        app.run(parsed_args.args)

@@ -15,6 +15,7 @@ from __future__ import absolute_import
 import itertools
 import threading
 
+from flask import current_app as cur_app
 from nailgun.db import sqlalchemy as nailgun_sa
 from nailgun import extensions
 import web
@@ -22,6 +23,9 @@ import web
 import tuning_box
 from tuning_box import app as tb_app
 from tuning_box import db as tb_db
+from tuning_box import errors
+from tuning_box import hiera_config
+from tuning_box.library import resource_values
 
 
 class App2WebPy(web.application):
@@ -73,6 +77,58 @@ class TB2WebPy(App2WebPy):
         app.config["PROPAGATE_EXCEPTIONS"] = True
         app.config["SQLALCHEMY_DATABASE_URI"] = nailgun_sa.db_str
         return app
+
+
+class ConfigPipeline(extensions.BasePipeline):
+
+    def get_hierarchy(self):
+        config = hiera_config.load_config()
+        return config['hierarchy']
+
+    @classmethod
+    def process_deployment_for_cluster(cls, cluster, cluster_data):
+        """Extend or modify deployment data for cluster.
+
+        :param cluster_data: serialized data for cluster
+        :param cluster: the instance of Cluster
+        """
+        result = {}
+        for level in cls.get_hierarchy():
+            cur_app.logger.debug("Fetching resource value for cluster: %s",
+                                 cluster.id)
+            try:
+                result.update(
+                    resource_values.get_resource_value(cluster.id, level, ())
+                )
+            except errors.TuningboxNotFound as e:
+                cur_app.logger.error("Resource value fetching for node "
+                                     "failed: %s", e)
+        # TODO(akislitsky) Implement proper data merge
+        cluster_data['tuning_box'] = result
+        return cluster_data
+
+    @classmethod
+    def process_deployment_for_node(cls, node, node_data):
+        """Extend or modify deployment data for node.
+
+        :param node: the instance of Node
+        :param node_data: serialized data for node
+        """
+        result = {}
+        for level in cls.get_hierarchy():
+            cur_app.logger.debug("Fetching resource value for node: %s",
+                                 node.id)
+            try:
+                result.update(
+                    resource_values.get_resource_value(node.cluster.id, level,
+                                                       (('node', node.id),))
+                )
+            except errors.TuningboxNotFound as e:
+                cur_app.logger.error("Resource value fetching for cluster "
+                                     "failed: %s", e)
+        # TODO(akislitsky) Implement proper data merge
+        node_data['tuning_box'] = result
+        return node_data
 
 
 class Extension(extensions.BaseExtension):

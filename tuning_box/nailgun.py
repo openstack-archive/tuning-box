@@ -22,6 +22,7 @@ import web
 import tuning_box
 from tuning_box import app as tb_app
 from tuning_box import db as tb_db
+from tuning_box import hiera_config
 
 
 class App2WebPy(web.application):
@@ -73,6 +74,28 @@ class TB2WebPy(App2WebPy):
         app.config["PROPAGATE_EXCEPTIONS"] = True
         app.config["SQLALCHEMY_DATABASE_URI"] = nailgun_sa.db_str
         return app
+
+
+class ConfigPipeline(extensions.BasePipeline):
+
+    app = TB2WebPy()
+
+    def get_hierarchy(self):
+        config = hiera_config.load_config()
+        return config['hierarchy']
+
+    @classmethod
+    def process_deployment_for_cluster(cls, cluster, cluster_data):
+        """Extend or modify deployment data for cluster.
+
+        :param cluster_data: serialized data for cluster
+        :param cluster: the instance of Cluster
+        """
+        result = {}
+        for level in cls.get_hierarchy():
+            cls.app.logger.debug("Fetching info for hierarchy level: %s",
+                                 level)
+        return cluster_data.update(result)
 
 
 class Extension(extensions.BaseExtension):

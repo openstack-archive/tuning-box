@@ -15,6 +15,7 @@ from __future__ import absolute_import
 import itertools
 import threading
 
+from flask import current_app as cur_app
 from nailgun.db import sqlalchemy as nailgun_sa
 from nailgun import extensions
 import web
@@ -22,6 +23,7 @@ import web
 import tuning_box
 from tuning_box import app as tb_app
 from tuning_box import db as tb_db
+from tuning_box import hiera_config
 
 
 class App2WebPy(web.application):
@@ -75,13 +77,39 @@ class TB2WebPy(App2WebPy):
         return app
 
 
+class ConfigPipeline(extensions.BasePipeline):
+
+    def get_hierarchy(self):
+        config = hiera_config.load_config()
+        return config['hierarchy']
+
+    @classmethod
+    def process_deployment_for_cluster(cls, cluster, cluster_data):
+        """Extend or modify deployment data for cluster.
+
+        :param cluster_data: serialized data for cluster
+        :param cluster: the instance of Cluster
+        """
+        result = {}
+        for level in cls.get_hierarchy():
+            cur_app.logger.debug("Fetching info for hierarchy level: %s",
+                                 level)
+        return cluster_data.update(result)
+
+
 class Extension(extensions.BaseExtension):
     name = 'tuning_box'
     version = tuning_box.__version__
     description = 'Plug tuning_box endpoints into Nailgun itself'
+    app = TB2WebPy()
 
-    urls = [{'uri': '/config', 'handler': TB2WebPy()}]
+    urls = [{'uri': '/config', 'handler': app}]
 
     @classmethod
     def alembic_migrations_path(cls):
+        app_instance = cls.app.get_app()
+        with app_instance.app_context():
+            app_instance.logger.error("##############################")
+            from tuning_box.library.resource_values import execute_sql
+            execute_sql()
         return tuning_box.get_migrations_dir()

@@ -17,12 +17,16 @@ import six
 from sqlalchemy import or_
 
 from tuning_box import db
+from tuning_box import errors
 from tuning_box import library
 from tuning_box.library import hierarchy_levels
 from tuning_box.library import resource_keys_operation
+from tuning_box.library.resource_keys_operation import KeysOperationMixin
 
 
-class ResourceValues(flask_restful.Resource):
+class ResourceValues(flask_restful.Resource, KeysOperationMixin):
+
+    KEYS_PATH_DELIMITER = '.'
 
     @db.with_transaction
     def put(self, environment_id, levels, resource_id_or_name):
@@ -63,6 +67,14 @@ class ResourceValues(flask_restful.Resource):
         app.logger.debug("Getting resource value. Env: %s, "
                          "resource: %s, levels: %s", environment_id,
                          resource_id_or_name, levels)
+
+        effective = 'effective' in flask.request.args
+        show_lookup = 'show_lookup' in flask.request.args
+
+        if show_lookup and not effective:
+            raise errors.RequestValidationError(
+                "Lookup path tracing can be done only for effective values")
+
         environment = db.Environment.query.get_or_404(environment_id)
         res_def = library.get_resource_definition(
             resource_id_or_name, environment_id)
@@ -73,11 +85,10 @@ class ResourceValues(flask_restful.Resource):
         level_values_ids = [l.id for l in level_values]
         app.logger.debug("Got level values ids: %s", level_values_ids)
 
-        if 'effective' in flask.request.args:
+        if effective:
             app.logger.debug("Getting effective resource value. Env: %s, "
                              "resource: %s, levels: %s", environment_id,
                              resource_id_or_name, levels)
-            show_lookup = 'show_lookup' in flask.request.args
             resource_values = db.ResourceValues.query.filter(
                 or_(
                     db.ResourceValues.level_value_id.in_(level_values_ids),
@@ -112,7 +123,6 @@ class ResourceValues(flask_restful.Resource):
 
             app.logger.debug("Effective values got for resource: "
                              "%s, env: %s", res_def.id, environment.id)
-            return result
         else:
             if not level_values:
                 level_value = None
@@ -125,9 +135,20 @@ class ResourceValues(flask_restful.Resource):
             ).one_or_none()
             app.logger.debug("Values got for resource: "
                              "%s, env: %s", res_def.id, environment.id)
-            if not resource_values:
-                return {}
-            return resource_values.values
+            if resource_values:
+                result = resource_values.values
+            else:
+                result = {}
+        return self._extract_keys_paths(result)
+
+    def _extract_keys_paths(self, data):
+        if 'key' not in flask.request.args:
+            return data
+        keys_path = flask.request.args['key'].split(self.KEYS_PATH_DELIMITER)
+        result = self.do_get(data, [keys_path])
+        # Single keys path is passed as GET request parameter, so we need
+        # only first result
+        return result[0]
 
 
 class ResourceValuesKeys(flask_restful.Resource,

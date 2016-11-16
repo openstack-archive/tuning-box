@@ -89,14 +89,14 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
                 'hello: world\n',
             )),
             ('no_key,json', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key no --format json',
-                '{\n  "no": {}\n}',
+                '/environments/1/resources/1/values?key=hello&effective',
+                'get --env 1 --resource 1 --key hello --format json',
+                '{\n  "hello": "world"\n}',
             )),
             ('no_key,yaml', (
-                '/environments/1/resources/1/values?effective',
-                'get --env 1 --resource 1 --key no --format yaml',
-                "'no': {}\n",
+                '/environments/1/resources/1/values?key=no.key&effective',
+                'get --env 1 --resource 1 --key no.key --format yaml',
+                "hello: world\n",
             ))
         ]
     ]

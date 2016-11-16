@@ -62,7 +62,8 @@ class Get(show.ShowOne, ResourcesCommand):
         parser.add_argument(
             '-k', '--key',
             type=str,
-            help="Name of key to get from the resource",
+            help="Name of key to get from the resource. For fetching nested "
+                 "key value use '.' for keys join. Example: k1.k2.k3",
         )
         parser.add_argument(
             '-s', '--show-lookup',
@@ -76,18 +77,15 @@ class Get(show.ShowOne, ResourcesCommand):
         params = {'effective': True}
         if parsed_args.show_lookup:
             params['show_lookup'] = True
+        if parsed_args.key:
+            params['key'] = parsed_args.key
         response = self.get_client().get(
             self.get_resource_url(parsed_args),
             params=params
         )
-        key = parsed_args.key
-        if key is not None:
-            result = {key: response.get(key, {})}
-        else:
-            result = response
-        columns = sorted(result.keys())
+        columns = sorted(response.keys())
         try:
-            data = data_utils.get_display_data_single(columns, result)
+            data = data_utils.get_display_data_single(columns, response)
             return columns, data
         except fc_error.BadDataException:
             return zip(*response.items())

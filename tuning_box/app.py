@@ -31,6 +31,7 @@ api_errors = {
     'IntegrityError': {'status': 409},  # sqlalchemy IntegrityError
     'TuningboxIntegrityError': {'status': 409},
     'KeysOperationError': {'status': 409},
+    'RequestValidationError': {'status': 409},
     'TuningboxNotFound': {'status': 404}
 }
 api = flask_restful.Api(errors=api_errors)
@@ -99,6 +100,12 @@ api.add_resource(
 )
 
 
+def handle_request_validation_error(exc):
+    response = flask.jsonify(msg=exc.args[0])
+    response.status_code = 409
+    return response
+
+
 def handle_integrity_error(exc):
     response = flask.jsonify(msg=exc.args[0])
     response.status_code = 409
@@ -130,6 +137,8 @@ def build_app(configure_logging=True, with_keystone=True):
                                handle_integrity_error)
     app.register_error_handler(errors.TuningboxNotFound,
                                handle_object_not_found)
+    app.register_error_handler(errors.RequestValidationError,
+                               handle_request_validation_error)
     app.register_error_handler(errors.KeysOperationError,
                                handle_keys_operation_error)
     db.db.init_app(app)

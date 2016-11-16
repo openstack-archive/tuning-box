@@ -11,6 +11,7 @@
 # under the License.
 
 import uuid
+import unittest
 
 import six
 
@@ -212,6 +213,7 @@ class TestResourceValues(BaseTest):
             result[six.text_type(uuid.uuid4())] = i
         return result
 
+    @unittest.skip("Skipping performance test")
     def test_get_resource_values_effective_lot_of_data(self):
         self._fixture()
         env_id = 9

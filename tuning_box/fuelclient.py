@@ -19,6 +19,7 @@ from tuning_box import cli
 from tuning_box.cli import base as cli_base
 from tuning_box.cli import components
 from tuning_box.cli import environments
+from tuning_box.cli import hierarchy_levels
 from tuning_box.cli import resource_definitions
 from tuning_box.cli import resources
 from tuning_box import client as tb_client
@@ -136,6 +137,20 @@ class DeleteResourceDefinition(
 class UpdateResourceDefinition(
     FuelBaseCommand,
     resource_definitions.UpdateResourceDefinition
+):
+    pass
+
+
+class ListHierarchyLevels(
+    FuelBaseCommand,
+    hierarchy_levels.ListHierarchyLevels
+):
+    pass
+
+
+class ShowHierarchyLevel(
+    FuelBaseCommand,
+    hierarchy_levels.ShowHierarchyLevel
 ):
     pass
 

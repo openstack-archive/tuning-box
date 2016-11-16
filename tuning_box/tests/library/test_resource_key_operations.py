@@ -15,9 +15,11 @@ from tuning_box.library import resource_keys_operation
 from tuning_box.tests.test_app import BaseTest
 
 
-class TestResourceDefinitions(BaseTest):
+class TestResourceKeysOperations(BaseTest):
 
     processor = resource_keys_operation.KeysOperationMixin()
+    object_url = '/environments/{0}/{1}resources/{2}/values'
+    object_keys_url = object_url + '/keys/{3}'
 
     def test_unknown_operation(self):
         self.assertRaises(errors.UnknownKeysOperation,
@@ -130,3 +132,81 @@ class TestResourceDefinitions(BaseTest):
         result = self.processor.do_delete(data, keys)
         self.assertEqual({'a': {'b': 'value_b'}}, data)
         self.assertEqual({'a': {}}, result)
+
+    def test_put_resource_values_delete(self):
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'key_0': 'val_0', 'key_1': 'val_1'}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id
+        )
+        obj_keys_url = obj_url + '/keys/delete'
+
+        data = [['key_0']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'key_1': 'val_1'}, actual)
+
+    def test_put_resource_values_not_found(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+
+        res = self.client.put(
+            '/environments/9/lvl1/val1/resources/5/values/keys/set',
+            data={}
+        )
+        self.assertEqual(404, res.status_code)
+
+    def test_put_resource_values_set_operation_error(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'key': 'val'}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        data = [['a', 'b', 'c', 'value']]
+        obj_keys_url = self.object_keys_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id,
+            'set'
+        )
+
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(409, res.status_code)
+
+    def test_put_resource_values_delete_operation_error(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'key_0': 'val_0', 'key_1': 'val_1'}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        obj_keys_url = self.object_keys_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id,
+            'delete'
+        )
+        data = [['fake_key']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(409, res.status_code)
+
+        data = [['key_0', 'val_0']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(409, res.status_code)

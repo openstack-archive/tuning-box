@@ -60,9 +60,11 @@ def get_environment_level_value(environment, levels):
 
 
 environment_hierarchy_level_fields = {
+    'id': fields.Integer,
     'name': fields.String,
     'environment_id': fields.Integer,
-    'parent': fields.String(attribute='parent.name')
+    'parent': fields.String(attribute='parent.name'),
+    'values': fields.List(fields.String(attribute='value'))
 }
 
 
@@ -81,22 +83,28 @@ class EnvironmentHierarchyLevels(flask_restful.Resource):
         flask_restful.marshal_with(environment_hierarchy_level_fields)
     ]
 
-    def get(self, environment_id, level):
-        level = db.find_or_404(db.EnvironmentHierarchyLevel,
-                               environment_id=environment_id,
-                               name=level)
+    def _get_query_params(self, environment_id, id_or_name):
+        params = {'environment_id': environment_id}
+        if isinstance(id_or_name, int):
+            params['id'] = id_or_name
+        else:
+            params['name'] = id_or_name
+        return params
+
+    def get(self, environment_id, id_or_name):
+        params = self._get_query_params(environment_id, id_or_name)
+        level = db.find_or_404(db.EnvironmentHierarchyLevel, **params)
         return level
 
     @db.with_transaction
-    def _do_update(self, environment_id, level):
-        level = db.find_or_404(db.EnvironmentHierarchyLevel,
-                               environment_id=environment_id,
-                               name=level)
+    def _do_update(self, environment_id, id_or_name):
+        params = self._get_query_params(environment_id, id_or_name)
+        level = db.find_or_404(db.EnvironmentHierarchyLevel, **params)
         level.name = flask.request.json.get('name', level.name)
 
-    def put(self, environment_id, level):
-        return self.patch(environment_id, level)
+    def put(self, environment_id, id_or_name):
+        return self.patch(environment_id, id_or_name)
 
-    def patch(self, environment_id, level):
-        self._do_update(environment_id, level)
+    def patch(self, environment_id, id_or_name):
+        self._do_update(environment_id, id_or_name)
         return None, 204

@@ -99,7 +99,7 @@ class BaseOneCommand(BaseCommand):
         parser.add_argument(
             'id',
             type=int,
-            help='Id of the {0} to delete.'.format(self.entity_name))
+            help='Id of the {0}'.format(self.entity_name))
         return parser
 
     def get_url(self, parsed_args):

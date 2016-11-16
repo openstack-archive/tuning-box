@@ -196,6 +196,8 @@ class EnvironmentHierarchyLevel(ModelMixin, db.Model):
             env_levels.append(env_levels[-1].child)
         return env_levels
 
+    values = db.relationship('EnvironmentHierarchyLevelValue')
+
 
 class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
     level_id = fk(EnvironmentHierarchyLevel, ondelete='CASCADE')

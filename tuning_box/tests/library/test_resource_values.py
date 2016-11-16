@@ -21,7 +21,6 @@ from tuning_box.tests.test_app import BaseTest
 class TestResourceValues(BaseTest):
 
     object_url = '/environments/{0}/{1}resources/{2}/values'
-    object_keys_url = object_url + '/keys/{3}'
 
     def test_put_resource_values_root(self):
         self._fixture()
@@ -132,37 +131,6 @@ class TestResourceValues(BaseTest):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(expected, res.json)
 
-    def test_put_resource_values_not_found(self):
-        self.app.config["PROPAGATE_EXCEPTIONS"] = True
-        self._fixture()
-
-        res = self.client.put(
-            '/environments/9/lvl1/val1/resources/5/values/keys/set',
-            data={}
-        )
-        self.assertEqual(404, res.status_code)
-
-    def test_put_resource_values_set_operation_error(self):
-        self.app.config["PROPAGATE_EXCEPTIONS"] = True
-        self._fixture()
-
-        environment_id = 9
-        res_def_id = 5
-        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
-        values = {'key': 'val'}
-        self._add_resource_values(environment_id, res_def_id, levels, values)
-
-        data = [['a', 'b', 'c', 'value']]
-        obj_keys_url = self.object_keys_url.format(
-            environment_id,
-            self.get_levels_path(levels),
-            res_def_id,
-            'set'
-        )
-
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(409, res.status_code)
-
     def test_put_resource_values_set(self):
         self._fixture()
         environment_id = 9
@@ -249,30 +217,6 @@ class TestResourceValues(BaseTest):
         self.assertEqual({'key': 'key_value', 'key_x': 'key_x_value'},
                          actual)
 
-    def test_put_resource_values_delete(self):
-        self._fixture()
-        environment_id = 9
-        res_def_id = 5
-        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
-        values = {'key_0': 'val_0', 'key_1': 'val_1'}
-        self._add_resource_values(environment_id, res_def_id, levels, values)
-
-        obj_url = self.object_url.format(
-            environment_id,
-            self.get_levels_path(levels),
-            res_def_id
-        )
-        obj_keys_url = obj_url + '/keys/delete'
-
-        data = [['key_0']]
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(204, res.status_code)
-
-        res = self.client.get(obj_url)
-        self.assertEqual(200, res.status_code)
-        actual = res.json
-        self.assertEqual({'key_1': 'val_1'}, actual)
-
     def test_put_resource_values_delete_by_name(self):
         self._fixture()
         environment_id = 9
@@ -303,29 +247,6 @@ class TestResourceValues(BaseTest):
         self.assertEqual(200, res.status_code)
         actual = res.json
         self.assertEqual({'key_1': 'val_1'}, actual)
-
-    def test_put_resource_values_delete_operation_error(self):
-        self.app.config["PROPAGATE_EXCEPTIONS"] = True
-        self._fixture()
-        environment_id = 9
-        res_def_id = 5
-        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
-        values = {'key_0': 'val_0', 'key_1': 'val_1'}
-        self._add_resource_values(environment_id, res_def_id, levels, values)
-
-        obj_keys_url = self.object_keys_url.format(
-            environment_id,
-            self.get_levels_path(levels),
-            res_def_id,
-            'delete'
-        )
-        data = [['fake_key']]
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(409, res.status_code)
-
-        data = [['key_0', 'val_0']]
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(409, res.status_code)
 
     def test_get_resource_values_effective_with_lookup(self):
         self._fixture()
@@ -429,3 +350,88 @@ class TestResourceValues(BaseTest):
         res = self.client.get(obj_url, query_string={'effective': 1})
         self.assertEqual(keys_on_root + keys_on_lvl1 + keys_on_lvl2,
                          len(res.json))
+
+    def test_resource_values_get_nested_keys(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'k0': 'v0', 'k1': {'k2': 'v12', 'k3': 'v13',
+                                     'k4': [{'k5': 'v1405'}, 'v141']},
+                  'k6': [{'k7': [{'k8': 'v60708'}]}]}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id
+        )
+        res = self.client.get(obj_url, query_string={'key': 'k0'})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual('v0', res.json)
+
+        # Getting nested key
+        res = self.client.get(obj_url, query_string={'key': 'k1.k2'})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual('v12', res.json)
+
+        # Getting nested key from the list
+        res = self.client.get(obj_url, query_string={'key': 'k1.k4.0'})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual({'k5': 'v1405'}, res.json)
+
+        # Getting nested key from nested lists
+        res = self.client.get(obj_url, query_string={'key': 'k6.0.k7.0.k8'})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual('v60708', res.json)
+
+        # Getting nested key effective value
+        res = self.client.get(obj_url,
+                              query_string={'key': 'k0', 'effective': 1})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual('v0', res.json)
+
+        res = self.client.get(obj_url,
+                              query_string={'key': 'k1.k2', 'effective': 1})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual('v12', res.json)
+
+        # Getting nested key value with lookup
+        res = self.client.get(
+            obj_url,
+            query_string={'key': 'k0', 'effective': 1, 'show_lookup': 1}
+        )
+        self.assertEqual(200, res.status_code)
+        self.assertEqual(['v0', '/lvl1/val1/lvl2/val2/'], res.json)
+
+        res = self.client.get(
+            obj_url,
+            query_string={'key': 'k1.k2', 'effective': 1, 'show_lookup': 1}
+        )
+        self.assertEqual(200, res.status_code)
+        self.assertEqual(['v12', '/lvl1/val1/lvl2/val2/'], res.json)
+
+    def test_resource_values_get_nested_keys_not_found(self):
+        self.app.config["PROPAGATE_EXCEPTIONS"] = True
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'k0': 'v0'}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id
+        )
+        res = self.client.get(obj_url, query_string={'key': 'k0'})
+        self.assertEqual(200, res.status_code)
+        self.assertEqual('v0', res.json)
+
+        res = self.client.get(obj_url, query_string={'key': 'k1'})
+        self.assertEqual(409, res.status_code)
+
+        res = self.client.get(obj_url, query_string={'key': 'k1.k2'})
+        self.assertEqual(409, res.status_code)

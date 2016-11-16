@@ -23,6 +23,10 @@ class TuningboxNotFound(BaseTuningboxError):
     pass
 
 
+class RequestValidationError(BaseTuningboxError):
+    pass
+
+
 class KeysOperationError(BaseTuningboxError):
     pass
 

@@ -47,6 +47,31 @@ class TestLevelsHierarchy(BaseTest):
             self.assertEqual(level.name, 'lvl1')
             self.assertIsNone(level.parent)
 
+    def test_get_environment_level_values(self):
+        self._fixture()
+        env_id = 9
+        with self.app.app_context(), db.db.session.begin():
+            # Creating level values
+            hierarchy_levels.get_environment_level_value(
+                db.Environment(id=env_id),
+                [('lvl1', 'val11'), ('lvl2', 'val21')],
+            )
+            hierarchy_levels.get_environment_level_value(
+                db.Environment(id=env_id),
+                [('lvl1', 'val11'), ('lvl2', 'val22')],
+            )
+            hierarchy_levels.get_environment_level_value(
+                db.Environment(id=env_id),
+                [('lvl1', 'val12'), ('lvl2', 'val23')],
+            )
+
+            res = self.client.get(self.collection_url.format(9))
+            lvl1 = res.json[0]
+            self.assertItemsEqual(['val11', 'val12'], lvl1['values'])
+
+            lvl2 = res.json[1]
+            self.assertItemsEqual(['val21', 'val22', 'val23'], lvl2['values'])
+
     def test_get_environment_level_value_bad_level(self):
         self._fixture()
         with self.app.app_context(), db.db.session.begin():

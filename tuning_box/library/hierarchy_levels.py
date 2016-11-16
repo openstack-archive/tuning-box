@@ -62,7 +62,8 @@ def get_environment_level_value(environment, levels):
 environment_hierarchy_level_fields = {
     'name': fields.String,
     'environment_id': fields.Integer,
-    'parent': fields.String(attribute='parent.name')
+    'parent': fields.String(attribute='parent.name'),
+    'values': fields.List(fields.String(attribute='value'))
 }
 
 

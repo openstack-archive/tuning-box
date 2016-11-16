@@ -21,10 +21,11 @@ from tuning_box import library
 
 class KeysOperationMixin(object):
 
+    OPERATION_GET = 'get'
     OPERATION_SET = 'set'
     OPERATION_DELETE = 'delete'
 
-    OPERATIONS = (OPERATION_SET, OPERATION_DELETE)
+    OPERATIONS = (OPERATION_GET, OPERATION_SET, OPERATION_DELETE)
 
     def _check_out_of_index(self, cur_point, key, keys_path):
         if isinstance(cur_point, (list, tuple)) and key >= len(cur_point):
@@ -46,6 +47,60 @@ class KeysOperationMixin(object):
                 "Leaf value {0} found on key {1} "
                 "in keys path {2}".format(cur_point, key, keys_path)
             )
+
+    def do_get(self, storage, keys_paths):
+        """Gets values from storage by keys paths.
+
+        Keys path is list of keys paths. If we have keys_paths
+        [['a', 'b']], then storage['a']['b'] will be get as result.
+
+        :param storage: original data
+        :param keys_paths: lists of keys paths to be set
+        :returns: value from storage specified by keys_paths
+        """
+
+        # Removing show lookup information from the data
+        show_lookup = 'show_lookup' in flask.request.args
+        effective = 'effective' in flask.request.args
+
+        if effective and show_lookup:
+            storage_copy = copy.deepcopy(storage)
+            for k in storage_copy.iterkeys():
+                storage_copy[k] = storage[k][0]
+        else:
+            storage_copy = storage
+
+        result = []
+        for keys_path in keys_paths:
+            cur_point = storage_copy
+            if not keys_path:
+                continue
+
+            try:
+                for key in keys_path[:-1]:
+                    # Keys paths are passed as part of the url, so we need
+                    # cast list and tuple indexes to integers
+                    if isinstance(cur_point, (list, tuple)):
+                        key = int(key)
+                    cur_point = cur_point[key]
+                key = keys_path[-1]
+                # Keys paths are passed as part of the url, so we need
+                # cast list and tuple indexes to integers
+                if isinstance(cur_point, (list, tuple)):
+                    key = int(key)
+                self._check_path_is_reachable(cur_point, key, keys_path)
+
+                if effective and show_lookup:
+                    result.append([cur_point[key], storage[keys_path[0]][1]])
+                else:
+                    result.append(cur_point[key])
+
+            except (KeyError, IndexError):
+                raise errors.KeysPathNotExisted(
+                    "Keys path doesn't exist {0}. "
+                    "Failed on the key {1}".format(keys_path, key)
+                )
+        return result
 
     def do_set(self, storage, keys_paths):
         """Sets values from keys paths to storage.
@@ -115,6 +170,8 @@ class KeysOperationMixin(object):
             return self.do_set(storage, keys_paths)
         elif operation == self.OPERATION_DELETE:
             return self.do_delete(storage, keys_paths)
+        elif operation == self.OPERATION_GET:
+            return self.do_get(storage, keys_paths)
         else:
             raise errors.UnknownKeysOperation(
                 "Unknown operation: {0}. "

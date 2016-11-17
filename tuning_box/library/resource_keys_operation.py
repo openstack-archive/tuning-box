@@ -48,6 +48,21 @@ class KeysOperationMixin(object):
                 "in keys path {2}".format(cur_point, key, keys_path)
             )
 
+    def _cast_key(self, key, cur_point):
+        """Casts indexes of lists and tuples to integer.
+
+        Keys paths can be passed as part of url or as command line
+        parameter: k1.k2.0.k4. So we need to cast list and tuple
+        indexes to integers
+
+        :param key: key
+        :param cur_point: data structure where key should be set
+        :return:
+        """
+        if isinstance(cur_point, (list, tuple)):
+            key = int(key)
+        return key
+
     def do_get(self, storage, keys_paths):
         """Gets values from storage by keys paths.
 
@@ -78,16 +93,10 @@ class KeysOperationMixin(object):
 
             try:
                 for key in keys_path[:-1]:
-                    # Keys paths are passed as part of the url, so we need
-                    # cast list and tuple indexes to integers
-                    if isinstance(cur_point, (list, tuple)):
-                        key = int(key)
+                    key = self._cast_key(key, cur_point)
                     cur_point = cur_point[key]
                 key = keys_path[-1]
-                # Keys paths are passed as part of the url, so we need
-                # cast list and tuple indexes to integers
-                if isinstance(cur_point, (list, tuple)):
-                    key = int(key)
+                key = self._cast_key(key, cur_point)
                 self._check_path_is_reachable(cur_point, key, keys_path)
 
                 if effective and show_lookup:
@@ -124,12 +133,14 @@ class KeysOperationMixin(object):
                 )
 
             for key in keys_path[:-2]:
+                key = self._cast_key(key, cur_point)
                 self._check_path_is_reachable(cur_point, key, keys_path)
                 self._check_out_of_index(cur_point, key, keys_path)
                 self._check_key_existed(cur_point, key, keys_path)
                 cur_point = cur_point[key]
 
-            assign_to = keys_path[-2]
+            assign_to = self._cast_key(keys_path[-2], cur_point)
+            self._check_path_is_reachable(cur_point, assign_to, keys_path)
             self._check_out_of_index(cur_point, assign_to, keys_path)
             cur_point[assign_to] = keys_path[-1]
 

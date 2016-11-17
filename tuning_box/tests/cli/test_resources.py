@@ -118,22 +118,15 @@ class TestGet(testscenarios.WithScenarios, _BaseCLITest):
 class TestSet(testscenarios.WithScenarios, _BaseCLITest):
     scenarios = [
         (s[0],
-         dict(zip(('args', 'expected_body', 'should_get', 'stdin'), s[1])))
+         dict(zip(('args', 'expected_body', 'stdin'), s[1])))
         for s in [
-            ('json', ('--format json', {'a': 3}, False, '{"a": 3}')),
-            ('yaml', ('--format yaml', {'a': 3}, False, 'a: 3')),
-            ('key,json', ('--key b --format json', {'a': 1, 'b': {'a': 3}},
-                          True, '{"a": 3}')),
-            ('key,yaml', ('--key b --format yaml', {'a': 1, 'b': {'a': 3}},
-                          True, 'a: 3')),
-            ('key,null', ('--key b --type null', {'a': 1, 'b': None})),
-            ('key,str', ('--key b --type str --value 4', {'a': 1, 'b': '4'})),
+            ('json', ('--format json', {'a': 3}, '{"a": 3}')),
+            ('yaml', ('--format yaml', {'a': 3}, 'a: 3'))
         ]
     ]
 
     args = None
     expected_body = None
-    should_get = True
     stdin = None
 
     url_last_part = 'values'
@@ -143,12 +136,6 @@ class TestSet(testscenarios.WithScenarios, _BaseCLITest):
         url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
             self.url_last_part
         self.req_mock.put(url)
-        if self.should_get:
-            self.req_mock.get(
-                url,
-                headers={'Content-Type': 'application/json'},
-                json={'a': 1, 'b': True},
-            )
         args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
                              self.args).split()
         if self.stdin:
@@ -156,9 +143,43 @@ class TestSet(testscenarios.WithScenarios, _BaseCLITest):
             self.cli.stdin.seek(0)
         self.cli.run(args)
         req_history = self.req_mock.request_history
-        if self.should_get:
-            self.assertEqual('GET', req_history[0].method)
         self.assertEqual('PUT', req_history[-1].method)
+        self.assertEqual(self.expected_body, req_history[-1].json())
+
+
+class TestSetKeys(testscenarios.WithScenarios, _BaseCLITest):
+    scenarios = [
+        (s[0],
+         dict(zip(('args', 'expected_body', 'stdin'), s[1])))
+        for s in [
+            ('key,json', ('--key c --format json', [['c', {'a': 3}]],
+                          '{"a": 3}')),
+            ('key,yaml', ('--key c --format yaml', [['c', {'a': 3}]],
+                          'a: 3')),
+            ('key,null', ('--key c --type null', [['c', None]])),
+            ('key,str', ('--key c --type str --value 4', [['c', '4']]))
+        ]
+    ]
+
+    args = None
+    expected_body = None
+    stdin = None
+
+    url_last_part = 'values'
+    cmd = 'set'
+
+    def test_set(self):
+        url = self.BASE_URL + '/environments/1/lvl1/value1/resources/1/' + \
+            self.url_last_part + '/keys/set'
+        self.req_mock.patch(url)
+        args = [self.cmd] + ("--env 1 --level lvl1=value1 --resource 1 " +
+                             self.args).split()
+        if self.stdin:
+            self.cli.stdin.write(self.stdin)
+            self.cli.stdin.seek(0)
+        self.cli.run(args)
+        req_history = self.req_mock.request_history
+        self.assertEqual('PATCH', req_history[-1].method)
         self.assertEqual(self.expected_body, req_history[-1].json())
 
 

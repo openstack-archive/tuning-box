@@ -20,6 +20,7 @@ from fuelclient.common import data_utils
 
 from tuning_box.cli.base import BaseCommand
 from tuning_box.cli.base import level_converter
+from tuning_box.library.resource_values import ResourceValues
 
 
 class ResourcesCommand(BaseCommand):
@@ -105,7 +106,8 @@ class Set(ResourcesCommand):
         parser.add_argument(
             '-k', '--key',
             type=str,
-            help="Name of key to set in the resource",
+            help="Name of key to get from the resource. For set nested "
+                 "key value use '.' as delimiter. Example: k1.k2.k3",
         )
         parser.add_argument(
             '-v', '--value',
@@ -200,12 +202,13 @@ class Set(ResourcesCommand):
 
         client = self.get_client()
         resource_url = self.get_resource_url(parsed_args, self.url_last_part)
-        if parsed_args.key is not None:
-            resource = client.get(resource_url)
-            resource[parsed_args.key] = value
+        if parsed_args.key:
+            keys_path = parsed_args.key.split(ResourceValues.KEYS_PATH_DELIMITER)
+            keys_path.append(value)
+            resource_url += '/keys/set'
+            result = client.patch(resource_url, [keys_path])
         else:
-            resource = value
-        result = client.put(resource_url, resource)
+            result = client.put(resource_url, value)
         if result is None:
             result = self.get_update_message(parsed_args)
         self.app.stdout.write(six.text_type(result))

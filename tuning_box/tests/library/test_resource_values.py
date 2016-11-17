@@ -131,31 +131,6 @@ class TestResourceValues(BaseTest):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(expected, res.json)
 
-    def test_put_resource_values_set(self):
-        self._fixture()
-        environment_id = 9
-        res_def_id = 5
-        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
-        values = {'key': 'val'}
-        self._add_resource_values(environment_id, res_def_id, levels, values)
-
-        obj_url = self.object_url.format(
-            environment_id,
-            self.get_levels_path(levels),
-            res_def_id
-        )
-        obj_keys_url = obj_url + '/keys/set'
-
-        data = [['key', 'key_value'], ['key_x', 'key_x_value']]
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(204, res.status_code)
-
-        res = self.client.get(obj_url)
-        self.assertEqual(200, res.status_code)
-        actual = res.json
-        self.assertEqual({'key': 'key_value', 'key_x': 'key_x_value'},
-                         actual)
-
     def test_put_resource_values_levels_mismatch(self):
         self.app.config["PROPAGATE_EXCEPTIONS"] = True
         self._fixture()
@@ -195,58 +170,6 @@ class TestResourceValues(BaseTest):
                     "environment 9 levels: []"},
             res.json
         )
-
-    def test_put_resource_values_set_no_levels(self):
-        self._fixture()
-        environment_id = 9
-        res_def_id = 5
-        values = {'key': 'val'}
-        self._add_resource_values(environment_id, res_def_id, (), values)
-
-        obj_url = '/environments/{0}/resources/{1}/values'.format(
-            environment_id, res_def_id)
-        obj_keys_url = obj_url + '/keys/set'
-
-        data = [['key', 'key_value'], ['key_x', 'key_x_value']]
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(204, res.status_code)
-
-        res = self.client.get(obj_url)
-        self.assertEqual(200, res.status_code)
-        actual = res.json
-        self.assertEqual({'key': 'key_value', 'key_x': 'key_x_value'},
-                         actual)
-
-    def test_put_resource_values_delete_by_name(self):
-        self._fixture()
-        environment_id = 9
-        res_def_id = 5
-        res_def_name = 'resdef1'
-        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
-        values = {'key_0': 'val_0', 'key_1': 'val_1'}
-        self._add_resource_values(environment_id, res_def_id, levels, values)
-
-        obj_url = self.object_url.format(
-            environment_id,
-            self.get_levels_path(levels),
-            res_def_name
-        )
-        obj_keys_url = obj_url + '/keys/delete'
-
-        data = [['key_0']]
-        res = self.client.put(obj_keys_url, data=data)
-        self.assertEqual(204, res.status_code)
-
-        obj_url = self.object_url.format(
-            environment_id,
-            self.get_levels_path(levels),
-            res_def_id
-        )
-
-        res = self.client.get(obj_url)
-        self.assertEqual(200, res.status_code)
-        actual = res.json
-        self.assertEqual({'key_1': 'val_1'}, actual)
 
     def test_get_resource_values_effective_with_lookup(self):
         self._fixture()

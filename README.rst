@@ -62,3 +62,44 @@ The ``fuel2`` CLI commands groups are the following:
   resource values
 - ``config override``, ``config rm override`` - operations for resource values
   overrides
+
+API
+---
+
+For all operations authentication is required. Auth token should be passed in
+the X-Auth-Token HTTP header. Tuning Box installed as a Fuel Nailgun extension
+thus base API URL is placed at ``http://MASTER_NODE_IP:8000/api/v1/config``
+All operations URLs should be concatenated with the base API URL.
+
+Components operations
+=====================
+
+URL: ``/components``
+Operations:
+
+- (GET) list components
+- (POST) component creation
+
+For adding component POST:
+
+.. code-block:: python
+
+    {
+        'name': str,
+        'resource_definitions': [
+            {
+                'name': str, 'content': str
+            }
+        ]
+    }
+
+
+Component operations
+====================
+
+URL: ``/components/<int:component_id>``
+Operations:
+
+- (GET) get component
+- (PUT/PATCH) update component
+- (DELETE) delete component

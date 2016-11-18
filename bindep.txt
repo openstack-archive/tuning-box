@@ -2,6 +2,7 @@
 # see http://docs.openstack.org/infra/bindep/ for additional information.
 
 # Requirements for DB migrations check
+libpq-dev
 mysql-server [platform:dpkg]
 mariadb-server [platform:rpm]
 postgresql

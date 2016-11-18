@@ -6,3 +6,5 @@ mysql-server [platform:dpkg]
 mariadb-server [platform:rpm]
 postgresql
 postgresql-server [platform:rpm]
+libpq-dev [platform:dpkg]
+libpq-dev [platform:rpm]

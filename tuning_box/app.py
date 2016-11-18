@@ -96,7 +96,7 @@ api.add_resource(
 api.add_resource(
     hierarchy_levels.EnvironmentHierarchyLevels,
     '/environments/<int:environment_id>/hierarchy_levels/'
-    '<string:level>'
+    '<id_or_name:id_or_name>'
 )
 
 

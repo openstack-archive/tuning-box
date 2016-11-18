@@ -165,8 +165,10 @@ class KeysOperationMixin(object):
 
             try:
                 for key in keys_path[:-1]:
+                    key = self._cast_key(key, cur_point)
                     cur_point = cur_point[key]
                 key = keys_path[-1]
+                key = self._cast_key(key, cur_point)
                 self._check_path_is_reachable(cur_point, key, keys_path)
                 del cur_point[key]
             except (KeyError, IndexError):

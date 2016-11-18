@@ -64,7 +64,8 @@ class Get(show.ShowOne, ResourcesCommand):
             '-k', '--key',
             type=str,
             help="Name of key to get from the resource. For fetching nested "
-                 "key value use '.' as delimiter. Example: k1.k2.k3",
+                 "key value use '{0}' as delimiter. Example: "
+                 "k1{0}k2{0}k3".format(ResourceValues.KEYS_PATH_DELIMITER),
         )
         parser.add_argument(
             '-s', '--show-lookup',
@@ -107,7 +108,8 @@ class Set(ResourcesCommand):
             '-k', '--key',
             type=str,
             help="Name of key to get from the resource. For set nested "
-                 "key value use '.' as delimiter. Example: k1.k2.k3",
+                 "key value use '{0}' as delimiter. Example: "
+                 "k1{0}k2{0}k3".format(ResourceValues.KEYS_PATH_DELIMITER),
         )
         parser.add_argument(
             '-v', '--value',
@@ -225,7 +227,9 @@ class Delete(ResourcesCommand):
         parser.add_argument(
             '-k', '--key',
             type=str,
-            help="Name of key to delete from the resource",
+            help="Name of key to delete from the resource. For nested "
+                 "key deletion use '{0}' as delimiter. Example: "
+                 "k1{0}k2{0}k3".format(ResourceValues.KEYS_PATH_DELIMITER),
             required=True
         )
         return parser
@@ -242,7 +246,9 @@ class Delete(ResourcesCommand):
     def take_action(self, parsed_args):
         client = self.get_client()
         resource_url = self.get_resource_url(parsed_args, self.url_last_part)
-        result = client.patch(resource_url, [[parsed_args.key]])
+        keys_path = parsed_args.key.split(
+            ResourceValues.KEYS_PATH_DELIMITER)
+        result = client.patch(resource_url, [keys_path])
         if result is None:
             result = self.get_deletion_message(parsed_args)
         self.app.stdout.write(six.text_type(result))

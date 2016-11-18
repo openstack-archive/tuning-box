@@ -162,6 +162,30 @@ class TestResourceKeysOperations(BaseTest):
         actual = res.json
         self.assertEqual({'key_1': 'val_1'}, actual)
 
+    def test_put_resource_values_delete_nested_keys(self):
+        self._fixture()
+        environment_id = 9
+        res_def_id = 5
+        levels = (('lvl1', 'val1'), ('lvl2', 'val2'))
+        values = {'k0': [{'k1': 'v01'}, 'b'], 'k2': {'k3': 'v23'}}
+        self._add_resource_values(environment_id, res_def_id, levels, values)
+
+        obj_url = self.object_url.format(
+            environment_id,
+            self.get_levels_path(levels),
+            res_def_id
+        )
+        obj_keys_url = obj_url + '/keys/delete'
+
+        data = [['k0', '0'], ['k2', 'k3']]
+        res = self.client.put(obj_keys_url, data=data)
+        self.assertEqual(204, res.status_code)
+
+        res = self.client.get(obj_url)
+        self.assertEqual(200, res.status_code)
+        actual = res.json
+        self.assertEqual({'k0': ['b'], 'k2': {}}, actual)
+
     def test_put_resource_values_not_found(self):
         self.app.config["PROPAGATE_EXCEPTIONS"] = True
         self._fixture()

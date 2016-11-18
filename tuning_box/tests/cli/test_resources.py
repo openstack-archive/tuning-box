@@ -190,6 +190,8 @@ class TestDelete(testscenarios.WithScenarios, _BaseCLITest):
         for s in [
             ('k1', ('-k k1', "ResourceValue for key k1 was deleted\n")),
             ('xx', ('-k xx', "ResourceValue for key xx was deleted\n")),
+            ('x.x', ('-k x.x', "ResourceValue for key x.x was deleted\n")),
+            ('x.0', ('-k x.0', "ResourceValue for key x.0 was deleted\n"))
         ]
     ]
 

@@ -129,14 +129,7 @@ class Set(ResourcesCommand):
         return parser
 
     def verify_arguments(self, parsed_args):
-        if parsed_args.key is None:  # no key
-            if parsed_args.value is not None or parsed_args.type is not None:
-                raise Exception("--value and --type arguments make sense only "
-                                "with --key argument.")
-            if parsed_args.format is None:
-                raise Exception("Please specify format of data passed to stdin"
-                                " to replace whole resource data.")
-        elif parsed_args.value is not None:  # have key and value
+        if parsed_args.value is not None:  # have value
             if parsed_args.format is not None:
                 raise Exception("You shouldn't specify --format if you pass "
                                 "value in command line, specify --type "
@@ -148,7 +141,7 @@ class Set(ResourcesCommand):
                 raise Exception("Please specify type of value passed in "
                                 "--value argument to properly represent it"
                                 " in the storage.")
-        elif parsed_args.type != 'null':  # have key but no value
+        elif parsed_args.type != 'null':  # have no value
             if parsed_args.type is not None:
                 raise Exception("--type specifies type for value provided in "
                                 "--value but there is not --value argument")

@@ -1,0 +1,9 @@
+Code-Review+2: Alexander Kislitsky <akislitsky@mirantis.com>
+Code-Review+1: Alexey Shtokolov <ashtokolov@mirantis.com>
+Workflow+1: Alexander Kislitsky <akislitsky@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 13 Feb 2017 19:34:51 +0000
+Reviewed-on: https://review.openstack.org/431150
+Project: openstack/tuning-box
+Branch: refs/heads/master

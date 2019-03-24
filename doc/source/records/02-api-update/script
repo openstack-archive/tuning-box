@@ -1,5 +1,5 @@
 yum install git python-pip python-alembic python-flask
-git clone git://git.openstack.org/openstack/tuning-box.git
+git clone https://git.openstack.org/openstack/tuning-box.git
 pip install -e tuning-box
 sudo -u postgres psql -c '\dt' nailgun | grep tuning_box
 nailgun_syncdb

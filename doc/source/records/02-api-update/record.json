@@ -2976,7 +2976,7 @@
     ],
     [
       0.5,
-      "git clone git://git.openstack.org/openstack/tuning-box.git"
+      "git clone https://git.openstack.org/openstack/tuning-box.git"
     ],
     [
       0.5,

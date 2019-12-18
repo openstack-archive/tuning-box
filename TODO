@@ -1,7 +1,0 @@
-* API input validation
-* properly handle collections/elements in API (currently all operations are
-  allowed on both collection and element which leads to bad error codes)
-* add cascade deletes or smth like it
-* verify that schema/template is actually related to environment
-* add component priorities
-* add versioning of all data
